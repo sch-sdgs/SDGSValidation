@@ -1,47 +1,120 @@
 <html>
 <head>
-    <title>Handle POST requests with Flask</title>
+    <title>SDGS NGS Validation</title>
     <!-- Latest compiled and minified CSS -->
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css"
           integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
+    <link rel=stylesheet type=text/css href="static/validation.css">
 </head>
 <body>
-<div id="container">
-    <div class="row">
-        <div class="col-md-4">
+<nav class="navbar navbar-inverse navbar-fixed-top">
+    <div class="container-fluid">
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar"
+                    aria-expanded="false" aria-controls="navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+             <h3><img src="static/sdgs_logo.png"> NGS Validation</h3>
         </div>
-        <div class="col-md-4">
+
+    </div>
+</nav>
+<div id="container">
+     <div class="panel panel-success">
+                    <div class="panel-heading">
+                        Variant Validation
+                    </div>
+    <div class="panel-body">A web-interface for validating NGS pipeline changes.  You can compare variants
+    between v1,v2 or vcf files.</div>
+  </div>
+    <div class="row">
+        <div class="col-md-6">
+            <form data-toggle="validator" method="post" action="{{ url_for('hello') }}">
+                <div class="panel panel-default">
+                    <div class="panel-heading">
+                        <h4>New Variant Validation</h4>
+                    </div>
+                    <div class="panel-body">
+                        <div id="content">
+                            <label for="baseline_file">File to Validate Against:</label>
+                            <input type="text" class="form-control" name="baseline_file" required/><br/>
+                            <label for="baseline_bam">Bam File:</label>
+                            <input type="text" class="form-control" name="baseline_bam" required/><br/>
+                            <label for="test_file">File You Are Validating:</label>
+                            <input type="text" class="form-control" name="test_file" required/><br/>
+                            <label for="test_bam">Bam File:</label>
+                            <input type="text" class="form-control" name="test_bam" required/><br/>
+                            <label for="sample">Sample:</label>
+                            <input type="text" class="form-control" name="sample" required/><br/>
+                            <label for="bed">Bed:</label>
+                            <input type="text" class="form-control" name="bed" required/><br/>
+
+                        </div>
+                    </div>
+                    <div class="panel-footer">
+                        <div class="text-right">
+                            <button type="submit" class="btn btn-primary"><span
+                                    class="glyphicon glyphicon-cog"></span>
+                                Submit
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="col-md-6">
             <div class="panel panel-default">
                 <div class="panel-heading">
-                    <h2>Validate 2 Files</h2>
+                    <h4>Incomplete Validations</h4>
                 </div>
                 <div class="panel-body">
                     <div id="content">
-                        <form method="post" action="{{ url_for('hello') }}">
-                            <label for="baseline_file">File to Validate Against:</label>
-                            <input type="text" class="form-control" name="baseline_file"/><br/>
-                            <label for="baseline_bam">Bam File:</label>
-                            <input type="text" class="form-control" name="baseline_bam"/><br/>
-                            <label for="test_file">File You Are Validating:</label>
-                            <input type="text" class="form-control" name="test_file"/><br/>
-                            <label for="test_bam">Bam File:</label>
-                            <input type="text" class="form-control" name="test_bam"/><br/>
-                            <label for="sample">Sample:</label>
-                            <input type="text" class="form-control" name="sample"/><br/>
-                            <label for="bed">Bed:</label>
-                            <input type="text" class="form-control" name="bed"/><br/>
-                            <button type="submit" class="btn btn-primary"><span class="glyphicon glyphicon-cog"></span>
-                                Submit
-                            </button>
-                        </form>
+                        <select class="form-control" name="selectionField">
+                            <option value=""></option>
+                            {% for x in in_progress %}
+                            <option value="{{ x }}.json">{{ x }}</option>
+                            {% endfor %}
+                        </select><br/>
+
+                    </div>
+                </div>
+                <div class="panel-footer">
+                    <div class="text-right">
+                        <button type="submit" class="btn btn-primary"><span class="glyphicon glyphicon-pencil"></span>
+                            Continue
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h4>Complete Validations</h4>
+                </div>
+                <div class="panel-body">
+
+                    <div id="content">
+                        <select class="form-control" name="selectionField">
+                            <option value=""></option>
+                            {% for x in complete %}
+                            <option value="{{ x }}.json">{{ x }}</option>
+                            {% endfor %}
+                        </select><br/>
+
+                    </div>
+                </div>
+                <div class="panel-footer">
+                    <div class="text-right">
+                        <button type="submit" class="btn btn-success"><span class="glyphicon glyphicon-search"></span>
+                            View
+                        </button>
                     </div>
                 </div>
             </div>
         </div>
-         <div class="col-md-4">
-        </div>
     </div>
-</div>
-</div>
 </body>
 </html>

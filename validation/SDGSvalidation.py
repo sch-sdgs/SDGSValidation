@@ -3,7 +3,7 @@ import json
 import logging
 import pandas as pd
 from jinja2 import Environment, FileSystemLoader
-from weasyprint import HTML
+# from weasyprint import HTML
 # from pybedtools import BedTool
 
 logger = logging.getLogger(__name__)

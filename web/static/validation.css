@@ -4,7 +4,7 @@
 
 /* Move down content because we have a fixed navbar that is 50px tall */
 body {
-  padding-top: 50px;
+  padding-top: 80px;
   margin-left: 20px;
   margin-right: 20px;
 }
@@ -23,9 +23,12 @@ body {
  * Top navigation
  * Hide default border to remove 1px line.
  */
+
+
 .navbar-fixed-top {
-  border: 0;
-  background-color: #D3D3D3	;
+
+  background-color: #FFFFFF	;
+  border-color: #E0E0E0;
 }
 
 /*

@@ -1,12 +1,15 @@
 from flask import Flask, render_template, Markup, request, url_for
 from validation import SDGSvalidation
+import os
 
-app = Flask(__name__,template_folder='.')
+app = Flask(__name__)
 
 
 @app.route('/')
 def form():
-    return render_template('form_submit.html')
+    in_progress = os.listdir("in_progress")
+    complete = os.listdir("complete_validations")
+    return render_template('form_submit.html',complete=complete,in_progress=in_progress)
 
 @app.route('/hello/', methods=['POST'])
 def hello():

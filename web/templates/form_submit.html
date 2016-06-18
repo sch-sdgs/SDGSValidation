@@ -1,0 +1,47 @@
+<html>
+<head>
+    <title>Handle POST requests with Flask</title>
+    <!-- Latest compiled and minified CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css"
+          integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
+</head>
+<body>
+<div id="container">
+    <div class="row">
+        <div class="col-md-4">
+        </div>
+        <div class="col-md-4">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h2>Validate 2 Files</h2>
+                </div>
+                <div class="panel-body">
+                    <div id="content">
+                        <form method="post" action="{{ url_for('hello') }}">
+                            <label for="baseline_file">File to Validate Against:</label>
+                            <input type="text" class="form-control" name="baseline_file"/><br/>
+                            <label for="baseline_bam">Bam File:</label>
+                            <input type="text" class="form-control" name="baseline_bam"/><br/>
+                            <label for="test_file">File You Are Validating:</label>
+                            <input type="text" class="form-control" name="test_file"/><br/>
+                            <label for="test_bam">Bam File:</label>
+                            <input type="text" class="form-control" name="test_bam"/><br/>
+                            <label for="sample">Sample:</label>
+                            <input type="text" class="form-control" name="sample"/><br/>
+                            <label for="bed">Bed:</label>
+                            <input type="text" class="form-control" name="bed"/><br/>
+                            <button type="submit" class="btn btn-primary"><span class="glyphicon glyphicon-cog"></span>
+                                Submit
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+         <div class="col-md-4">
+        </div>
+    </div>
+</div>
+</div>
+</body>
+</html>

@@ -2,6 +2,7 @@ from producers import VariantProducers
 import json
 import logging
 import pandas as pd
+import time
 from jinja2 import Environment, FileSystemLoader
 # from weasyprint import HTML
 # from pybedtools import BedTool
@@ -85,11 +86,30 @@ def test_mismatch_list(test_list, baseline_list, parameter, baseline_variant, te
 
 def make_igv_link(baseline_bam, test_bam, chrom, pos):
     link = '<a href = "http://localhost:60151/goto?locus=' + chrom + ':' + str(
-        pos + 1) + '"><span class="glyphicon glyphicon-file" style="vertical-align:top; color:black" ></span></a>'
+        pos + 1) + '"><button type="button" class="btn btn-default"><span class="glyphicon glyphicon-file"></span></button></a>'
     return link
 
 
+def test_mismatch_list(test_list, baseline_list, parameter, baseline_variant, test_variant):
+    """
+    tests if two lists match each other
+
+    :param test_list:
+    :param baseline_list:
+    :param parameter:
+    :param baseline_variant:
+    :param test_variant:
+    :return:
+    """
+    if len(test_list) + len(baseline_list) != 0:
+        if not any(map(lambda v: v in sorted(test_list), sorted(baseline_list))):
+            logger.info(parameter + ": " + str(baseline_list) + " vs " + str(test_list))
+            logger.info("   BASELINE_VARIANT: " + str(baseline_variant))
+            logger.info("   TEST_VARIANT: " + str(test_variant))
+            return False
+
 def validate_variants(baseline_file, baseline_bam, test_file, test_bam, sample_id, bed_file):
+    time.sleep(1)
     producer = determine_file_type(baseline_file)
     variant_producer_baseline = producer(baseline_file, sample_id)
 
@@ -133,24 +153,6 @@ def validate_variants(baseline_file, baseline_bam, test_file, test_bam, sample_i
         logger.info("MISSING_VARIANT: " + str(baseline_variants_by_id[m]))
 
     check_variant_list = []
-
-    def test_mismatch_list(test_list, baseline_list, parameter, baseline_variant, test_variant):
-        """
-        tests if two lists match each other
-
-        :param test_list:
-        :param baseline_list:
-        :param parameter:
-        :param baseline_variant:
-        :param test_variant:
-        :return:
-        """
-        if len(test_list) + len(baseline_list) != 0:
-            if not any(map(lambda v: v in sorted(test_list), sorted(baseline_list))):
-                logger.info(parameter + ": " + str(baseline_list) + " vs " + str(test_list))
-                logger.info("   BASELINE_VARIANT: " + str(baseline_variant))
-                logger.info("   TEST_VARIANT: " + str(test_variant))
-                return False
 
     # TODO: for vcf filter on lowquality flag in filter column
 
@@ -228,16 +230,13 @@ def validate_variants(baseline_file, baseline_bam, test_file, test_bam, sample_i
                                                            '<input type="checkbox" name="vehicle" value="Bike">', link])
         logger.info("ADDITIONAL_VARIANT: " + str(variant))
 
-    # env = Environment(loader=FileSystemLoader('.'))
-    # template = env.get_template("resources/validation_report_variants.html")
-
 
     pd.set_option('display.max_colwidth', -1)
 
     additional_variants_pd = pd.DataFrame(additional_variants)
     mismatch_variants_pd = pd.DataFrame(mismatch_variants)
     missing_variants_pd = pd.DataFrame(missing_variants)
-    print mismatch_variants_pd
+
     if len(additional_variants['chrom']) > 0:
         additional_variants_pd = additional_variants_pd[
             ['bam', 'check', 'chrom', 'pos', 'ref', 'alt', 'filter', 'key', 'genotype', 'id', 'qual', 'info']]
@@ -251,11 +250,11 @@ def validate_variants(baseline_file, baseline_bam, test_file, test_bam, sample_i
     if len(missing_variants['chrom']) > 0:
         missing_variants_pd = missing_variants_pd[
             ['bam', 'check', 'chrom', 'pos', 'ref', 'alt', 'filter', 'key', 'genotype', 'id', 'qual', 'info']]
-
-    missing_variants_pd = missing_variants_pd.loc[missing_variants_pd['filter'] != 'LowQual']
+    print missing_variants_pd
+    # missing_variants_pd = missing_variants_pd.loc[missing_variants_pd['filter'] != 'LowQual']
     missing_variants_pass_count = len(missing_variants_pd.index)
     # mismatch_variants_pd = mismatch_variants_pd.loc[mismatch_variants_pd['filter'] == "PASS"]
-    additional_variants_pd = additional_variants_pd.loc[additional_variants_pd['filter'] != 'LowQual']
+    # additional_variants_pd = additional_variants_pd.loc[additional_variants_pd['filter'] != 'LowQual']
     additional_variants_pass_count = len(additional_variants_pd.index)
 
     stats = pd.DataFrame({
@@ -269,22 +268,18 @@ def validate_variants(baseline_file, baseline_bam, test_file, test_bam, sample_i
 
 
 
-    template_vars = {"title": "Validation report: " + sample_id,
-                     "stats": stats.to_html(index=False, justify="left", classes=["table table-striped"]),
+    template_vars = {"title": "Validation Report: " + sample_id,
+                     "stats": stats.to_html(index=False, justify="left", classes=["table table-bordered table-striped"]),
                      "bam_link": "http://localhost:60151/load?file=http://10.182.131.21" + baseline_bam + ",http://10.182.131.21" + test_bam + "&merge=false",
                      "missing_variants": missing_variants_pd.to_html(index=False, justify="left", escape=False,
-                                                                     classes=["table table-striped"]),
+                                                                     classes=["table table-bordered table-striped"]),
                      "mismatch_variants": mismatch_variants_pd.to_html(index=False, justify="left", escape=False,
-                                                                       classes=["table table-striped"]),
+                                                                       classes=["table table-bordered table-striped"]),
                      "mismatch_status": mismatch_status,
                      "additional_variants": additional_variants_pd.to_html(index=False, justify="left", escape=False,
-                                                                           classes=["table table-striped"])}
+                                                                           classes=["table table-bordered table-striped"])}
     return template_vars
 
-    # html_out = template.render(template_vars)
-    # f = open('/home/bioinfo/mparker/web/test.html', 'w')
-    # f.write(html_out)
-    # f.close
 
 
 def validate_stats():

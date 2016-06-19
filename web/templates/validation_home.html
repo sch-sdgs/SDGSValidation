@@ -1,0 +1,167 @@
+<html>
+<head>
+    <title>SDGS NGS Validation</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+    <!-- Bootstrap -->
+    <!-- Latest compiled and minified CSS -->
+    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
+    <!-- Latest compiled and minified JavaScript -->
+    <script src="//netdna.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
+    <link rel=stylesheet type=text/css href="static/validation.css">
+    <script type="text/javascript">
+        //<![CDATA[
+        $(window).load(function () {
+            (function () {
+                $('#new > input').change(function () {
+
+                    var empty = false;
+                    $('#new > input').each(function () {
+                        if ($(this).val() == '') {
+                            empty = true;
+                        }
+                    });
+
+                    if (empty) {
+                        $('#bttnsubmit').attr('disabled', 'disabled');
+                    } else {
+                        $('#bttnsubmit').removeAttr('disabled');
+                    }
+                });
+            })()
+        });//]]>
+
+
+    </script>
+</head>
+<body>
+<nav class="navbar navbar-inverse navbar-fixed-top">
+    <div class="container-fluid">
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar"
+                    aria-expanded="false" aria-controls="navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a class="navbar-brand" href="#">Sheffield Diagnostic Genetics Service</a>
+        </div>
+
+    </div>
+</nav>
+<div id="container">
+    <div class="panel panel-success">
+        <div class="panel-heading">
+            Variant Validation
+        </div>
+        <div class="panel-body">A web-interface for validating NGS pipeline changes. You can compare variants
+            between v1,v2 or vcf files. Bam file paths are required for visualising variants IGV (Viewer required).
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-6">
+            <div class="panel panel-default form-group" aria-multiselectable="true">
+                <div class="panel-heading">
+                    <h4>New Variant Validation</h4>
+                </div>
+                <div class="panel-body">
+                    <form id="new" method="post" action="{{ url_for('variant_validation') }}">
+                        <p class="text-muted">Enter full paths to files on the NGS-Server</p>
+                        <label for="baseline_file">File to Validate Against</label>
+                        <input type="text" class="form-control" name="baseline_file"/><br/>
+                        <label for="baseline_bam">Original Bam File</label>
+                        <input type="text" class="form-control" name="baseline_bam"/><br/>
+                        <label for="test_file">File You Are Validating</label>
+                        <input type="text" class="form-control" name="test_file"/><br/>
+                        <label for="test_bam">New Bam File</label>
+                        <input type="text" class="form-control" name="test_bam"/><br/>
+                        <label for="sample">Sample</label>
+                        <input type="text" class="form-control" name="sample"/><br/>
+                        <label for="bed">Bed</label>
+                        <input type="text" class="form-control" name="bed"/><br/>
+                        <div class="text-right">
+                            <button disabled='disabled' id="bttnsubmit" type="submit" data-toggle="modal"
+                                    data-target="#myModal"
+                                    class="btn btn-primary" data-backdrop="static" data-keyboard="false"><span
+                                    class="glyphicon glyphicon-cog"></span>
+                                Submit
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h4>Incomplete Validations</h4>
+                </div>
+                <div class="panel-body">
+                    <div id="content">
+                        <select class="form-control" name="selectionField">
+                            <option value=""></option>
+                            {% for x in in_progress %}
+                            <option value="{{ x }}.json">{{ x }}</option>
+                            {% endfor %}
+                        </select><br/>
+
+                    </div>
+                </div>
+                <div class="panel-footer">
+                    <div class="text-right">
+                        <button type="submit" onclick="loading();" class="btn btn-primary"><span
+                                class="glyphicon glyphicon-pencil"></span>
+                            Continue
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h4>Complete Validations</h4>
+                </div>
+                <div class="panel-body">
+
+                    <div id="content">
+                        <select class="form-control" name="selectionField">
+                            <option value=""></option>
+                            {% for x in complete %}
+                            <option value="{{ x }}.json">{{ x }}</option>
+                            {% endfor %}
+                        </select><br/>
+
+                    </div>
+                </div>
+                <div class="panel-footer">
+                    <div class="text-right">
+                        <button type="submit" class="btn btn-success"><span class="glyphicon glyphicon-search"></span>
+                            View
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="myModal" class="modal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-body">
+                <h4>Comparing Variants</h4>
+                <p>Large VCF files may take minutes</p>
+                <div class="progress">
+                    <div class="progress-bar progress-bar-success progress-bar-striped active" role="progressbar"
+                         aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="width: 100%">
+                        <span class="sr-only">40% Complete (success)</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>
+

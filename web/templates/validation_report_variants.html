@@ -3,88 +3,103 @@
 <head>
     <meta charset="UTF-8">
     <title>{{ title }}</title>
-     <!-- Latest compiled and minified CSS -->
-<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
-    <link rel="stylesheet" href="validation.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+    <!-- Bootstrap -->
+    <!-- Latest compiled and minified CSS -->
+    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
+    <!-- Latest compiled and minified JavaScript -->
+    <script src="//netdna.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
+    <link rel=stylesheet type=text/css href="../static/validation.css">
 </head>
 <body>
-
-    <nav class="navbar navbar-inverse navbar-fixed-top">
-     <div class="container-fluid">
+<nav class="navbar navbar-inverse navbar-fixed-top">
+    <div class="container-fluid">
         <div class="navbar-header">
-          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
-            <span class="sr-only">Toggle navigation</span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-          </button>
+            <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar"
+                    aria-expanded="false" aria-controls="navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
             <a class="navbar-brand" href="#">Sheffield Diagnostic Genetics Service</a>
         </div>
         <div id="navbar" class="navbar-collapse collapse">
             <form class="navbar-form navbar-right">
-                <button type="button" class="btn btn-primary" onclick="location.href='{{ bam_link }}';"><span class="glyphicon glyphicon-search"></span> IGV Viewer</button>
-                <button type="button" class="btn btn-success" onClick="window.print()"><span class="glyphicon glyphicon-floppy-disk"></span> Save Changes</button>
-                <button type="button" class="btn btn-danger" onClick="window.print()"><span class="glyphicon glyphicon-file"></span> Print (Save as PDF)</button>
-          </form>
-          <ul class="nav navbar-nav navbar-right">
-            <li><a href="#">Help</a></li>
-          </ul>
+                <button type="button" class="btn btn-primary" onclick="location.href='{{ bam_link }}';"><span
+                        class="glyphicon glyphicon-search"></span> IGV Viewer
+                </button>
+                <button type="button" class="btn btn-success" onClick="window.print()"><span
+                        class="glyphicon glyphicon-floppy-disk"></span> Save Changes
+                </button>
+                <button type="button" class="btn btn-danger" onClick="window.print()"><span
+                        class="glyphicon glyphicon-file"></span> Print (Save as PDF)
+                </button>
+            </form>
+            <ul class="nav navbar-nav navbar-right">
+                <li><a href="#">Help</a></li>
+            </ul>
         </div>
-      </div>
-    </nav>
-    <div class="container-fluid">
-        <div class="visible-print">
-            <table class="table table-stripped">
-                <tbody>
-                <tr>
-                    <td>Sheffield Children's NHS Foundation Trust</td>
-                    <td>Department: Sheffield Diagnostic Genetics Service</td>
-                </tr>
-                <tr>
-                    <td>Title:</td>
-                    <td>Document Reference Number:</td>
-                </tr>
-                </tbody>
-            </table>
+    </div>
+</nav>
+<div class="container-fluid">
+    <div class="visible-print">
+        <table class="table table-stripped">
+            <tbody>
+            <tr>
+                <td>Sheffield Children's NHS Foundation Trust</td>
+                <td>Department: Sheffield Diagnostic Genetics Service</td>
+            </tr>
+            <tr>
+                <td>Title:</td>
+                <td>Document Reference Number:</td>
+            </tr>
+            </tbody>
+        </table>
 
-        </div>
-        <div class="row">
-            <div>
-                <h2>{{ title }}</h2>
-                <h3>Summary</h3>
+    </div>
+    <div class="row">
+        <div class="panel panel-default form-group" aria-multiselectable="true">
+            <div class="panel-heading">
+                <h3>{{ title }}</h3>
             </div>
-            <div class="table-responsive">
-                {{ stats }}
-            </div>
-            <div>
-                <h3>Missing Variants</h3>
-            </div>
-            <div class="table-responsive">
-                {{ missing_variants }}
-            </div>
-              <div>
-                 <h4>Notes</h4>
-                 <textarea rows="5" class="form-control" style="min-width: 100%">{{ missing_status }}</textarea>
-            </div>
-            <div>
-                <h3>Mismatch Variants </h3>
-            </div>
-            <div class="table-responsive">
-                {{ mismatch_variants }}
-            </div>
-             <div>
-                 <h4>Notes</h4>
-                 <textarea rows="5" class="form-control" style="min-width: 100%">{{ mismatch_status }}</textarea>
-            </div>
-            <div class="table-responsive">
-                <h3>Additional Variants</h3>
-            </div>
-            <div>
-                {{ additional_variants }}
-            </div>
-              <div>
-                 <h4>Notes</h4>
-                 <textarea rows="5" class="form-control" style="min-width: 100%">{{ additional_status }}</textarea>
+            <div class="panel-body">
+
+
+                <h4>Summary</h4>
+                <div class="table-responsive">
+                    {{ stats }}
+                </div>
+                <div>
+                    <h4>Missing Variants</h4>
+                </div>
+                <div class="table-responsive">
+                    {{ missing_variants }}
+                </div>
+                <div>
+                    <h4>Notes</h4>
+                    <textarea rows="5" class="form-control" style="min-width: 100%">{{ missing_status }}</textarea>
+                </div>
+                <div>
+                    <h4>Mismatch Variants </h4>
+                </div>
+                <div class="table-responsive">
+                    {{ mismatch_variants }}
+                </div>
+                <div>
+                    <h4>Notes</h4>
+                    <textarea rows="5" class="form-control" style="min-width: 100%">{{ mismatch_status }}</textarea>
+                </div>
+                <div class="table-responsive">
+                    <h4>Additional Variants</h4>
+                </div>
+                <div>
+                    {{ additional_variants }}
+                </div>
+                <div>
+                    <h4>Notes</h4>
+                    <textarea rows="5" class="form-control" style="min-width: 100%">{{ additional_status }}</textarea>
+                </div>
             </div>
         </div>
         <div class="visible-print">
@@ -102,6 +117,5 @@
             </table>
 
         </div>
-    </div>
 </body>
 </html>

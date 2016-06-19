@@ -10,6 +10,24 @@ body {
 }
 
 
+.progress-bar.animate {
+   width: 100%;
+}
+.glyphicon.spinning {
+    animation: spin 1s infinite linear;
+    -webkit-animation: spin2 1s infinite linear;
+}
+
+@keyframes spin {
+    from { transform: scale(1) rotate(0deg); }
+    to { transform: scale(1) rotate(360deg); }
+}
+
+@-webkit-keyframes spin2 {
+    from { -webkit-transform: rotate(0deg); }
+    to { -webkit-transform: rotate(360deg); }
+}
+
 /*
  * Global add-ons
  */
@@ -27,8 +45,9 @@ body {
 
 .navbar-fixed-top {
 
-  background-color: #FFFFFF	;
+  background-color: #E8E8E8	;
   border-color: #E0E0E0;
+    z-index: 99;
 }
 
 /*
@@ -45,7 +64,7 @@ body {
     top: 51px;
     bottom: 0;
     left: 0;
-    z-index: 1000;
+    z-index: 99;
     display: block;
     padding: 20px;
     overflow-x: hidden;

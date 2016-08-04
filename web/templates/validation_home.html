@@ -2,17 +2,14 @@
 <head>
     <title>SDGS NGS Validation</title>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
-    <!-- Bootstrap -->
-    <!-- Latest compiled and minified CSS -->
     <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
-    <!-- Latest compiled and minified JavaScript -->
     <script src="//netdna.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
     <link rel=stylesheet type=text/css href="static/validation.css">
     <script type="text/javascript">
         //<![CDATA[
         $(window).load(function () {
             (function () {
-                $('#new > input').change(function () {
+                $('#new > input').on('keyup change', function () {
 
                     var empty = false;
                     $('#new > input').each(function () {
@@ -28,9 +25,19 @@
                     }
                 });
             })()
+            $(function () {
+                $('.tree li').hide();
+                $('.tree li:first').show();
+                $('.tree li').on('click', function (e) {
+                    var children = $(this).find('> ul > li');
+                    if (children.is(":visible")) children.hide('fast');
+                    else children.show('fast');
+                    e.stopPropagation();
+                });
+            });
+
+
         });//]]>
-
-
     </script>
 </head>
 <body>
@@ -46,13 +53,12 @@
             </button>
             <a class="navbar-brand" href="#">Sheffield Diagnostic Genetics Service</a>
         </div>
-
     </div>
 </nav>
 <div id="container">
     <div class="panel panel-success">
         <div class="panel-heading">
-            Variant Validation
+            <h2>Variant Validation</h2>
         </div>
         <div class="panel-body">A web-interface for validating NGS pipeline changes. You can compare variants
             between v1,v2 or vcf files. Bam file paths are required for visualising variants IGV (Viewer required).
@@ -79,6 +85,8 @@
                         <input type="text" class="form-control" name="sample"/><br/>
                         <label for="bed">Bed</label>
                         <input type="text" class="form-control" name="bed"/><br/>
+
+                        <!-- would be nice to have dropdown with versions of code for validation https://api.github.com/repos/sch-sdgs/SDGSValidation/git/refs-->
                         <div class="text-right">
                             <button disabled='disabled' id="bttnsubmit" type="submit" data-toggle="modal"
                                     data-target="#myModal"
@@ -115,14 +123,12 @@
                         </button>
                     </div>
                 </div>
-
             </div>
             <div class="panel panel-default">
                 <div class="panel-heading">
                     <h4>Complete Validations</h4>
                 </div>
                 <div class="panel-body">
-
                     <div id="content">
                         <select class="form-control" name="selectionField">
                             <option value=""></option>
@@ -130,7 +136,6 @@
                             <option value="{{ x }}.json">{{ x }}</option>
                             {% endfor %}
                         </select><br/>
-
                     </div>
                 </div>
                 <div class="panel-footer">
@@ -144,7 +149,6 @@
         </div>
     </div>
 </div>
-
 <div id="myModal" class="modal">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -161,7 +165,55 @@
         </div>
     </div>
 </div>
+<!-- We will create a family tree using just CSS(3) The markup will be simple nested lists -->
 
-</body>
-</html>
 
+<!--<div id="tree" class="modal">-->
+    <!--<div class="modal-dialog">-->
+        <!--<div class="modal-content">-->
+            <!--<div class="tree">-->
+                <!--<ul>-->
+                    <!--<li><a href="#">NGS-Server</a>-->
+                        <!--<ul>-->
+                            <!--{% for i in paths %}-->
+                            <!--<li><a href="#">{{ i }}</a>-->
+                                <!--<ul>-->
+                                    <!--{% for w in paths[i] %}-->
+                                    <!--<li><a href="#">{{w}}</a>-->
+                                        <!--<ul>-->
+                                            <!--{% for s in paths[i][w] %}-->
+                                            <!--<li><a href="#">{{s}}</a>-->
+                                                <!--<ul>-->
+                                                    <!--{% for f in paths[i][w][s] %}-->
+                                                    <!--{% if f is mapping %}-->
+                                                    <!--{% for l in f %}-->
+                                                    <!--<li><a href="#">{{ l }}</a>-->
+                                                        <!--<ul>-->
+                                                            <!--{% for e in f[l] %}-->
+                                                            <!--<li><a href="#">{{ e }}</a></li>-->
+                                                            <!--{% endfor %}-->
+                                                        <!--</ul>-->
+                                                    <!--</li>-->
+                                                    <!--{% endfor %}-->
+                                                    <!--{% else %}-->
+                                                    <!--<li><a href="#">{{f}}</a></li>-->
+                                                    <!--{% endif %}-->
+                                                    <!--{% endfor %}-->
+                                                <!--</ul>-->
+                                            <!--</li>-->
+                                            <!--{% endfor %}-->
+                                        <!--</ul>-->
+                                    <!--</li>-->
+                                    <!--{% endfor %}-->
+                                <!--</ul>-->
+                            <!--</li>-->
+                            <!--{% endfor %}-->
+                        <!--</ul>-->
+                    <!--</li>-->
+                <!--</ul>-->
+            <!--</div>-->
+        <!--</div>-->
+    <!--</div>-->
+<!--</div>-->
+<!--</body>-->
+<!--</html>-->

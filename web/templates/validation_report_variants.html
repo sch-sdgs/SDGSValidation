@@ -4,118 +4,146 @@
     <meta charset="UTF-8">
     <title>{{ title }}</title>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
-    <!-- Bootstrap -->
-    <!-- Latest compiled and minified CSS -->
     <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
-    <!-- Latest compiled and minified JavaScript -->
+    <link rel="stylesheet" href="../static/bootstrap-switch.css">
     <script src="//netdna.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
+    <script src="../static/bootstrap-switch.js"></script>
     <link rel=stylesheet type=text/css href="../static/validation.css">
+    <script>
+        //<![CDATA[
+        $(window).load(function () {
+            $.fn.bootstrapSwitch.defaults.onText = 'Yes';
+            $.fn.bootstrapSwitch.defaults.offText = 'No';
+            $("[name='complete']").bootstrapSwitch({onColor: 'success',offColor: 'danger'});
+            $("[name='status']").bootstrapSwitch({
+                onColor: 'success',
+                offColor: 'danger',
+                onText: 'PASS',
+                offText: 'FAIL'
+            });
+        });//]]>
+
+    </script>
 </head>
 <body>
-<nav class="navbar navbar-inverse navbar-fixed-top">
-    <div class="container-fluid">
-        <div class="navbar-header">
-            <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar"
-                    aria-expanded="false" aria-controls="navbar">
-                <span class="sr-only">Toggle navigation</span>
-                <span class="icon-bar"></span>
-                <span class="icon-bar"></span>
-                <span class="icon-bar"></span>
-            </button>
-            <a class="navbar-brand" href="#">Sheffield Diagnostic Genetics Service</a>
-        </div>
-        <div id="navbar" class="navbar-collapse collapse">
-            <form class="navbar-form navbar-right">
-                <button type="button" class="btn btn-primary" onclick="location.href='{{ bam_link }}';"><span
-                        class="glyphicon glyphicon-search"></span> IGV Viewer
+<form method="post" action="{{ url_for('save_form') }}">
+    <nav class="navbar navbar-inverse navbar-fixed-top">
+        <div class="container-fluid">
+            <div class="navbar-header">
+                <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar"
+                        aria-expanded="false" aria-controls="navbar">
+                    <span class="sr-only">Toggle navigation</span>
+                    <span class="sr-only">Toggle navigation</span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
                 </button>
-                <button type="button" class="btn btn-success" onClick="window.print()"><span
-                        class="glyphicon glyphicon-floppy-disk"></span> Save Changes
-                </button>
-                <button type="button" class="btn btn-danger" onClick="window.print()"><span
-                        class="glyphicon glyphicon-file"></span> Print (Save as PDF)
-                </button>
-            </form>
-            <ul class="nav navbar-nav navbar-right">
-                <li><a href="#">Help</a></li>
-            </ul>
-        </div>
-    </div>
-</nav>
-<div class="container-fluid">
-    <div class="visible-print">
-        <table class="table table-stripped">
-            <tbody>
-            <tr>
-                <td>Sheffield Children's NHS Foundation Trust</td>
-                <td>Department: Sheffield Diagnostic Genetics Service</td>
-            </tr>
-            <tr>
-                <td>Title:</td>
-                <td>Document Reference Number:</td>
-            </tr>
-            </tbody>
-        </table>
+                <a class="navbar-brand" href="#">Sheffield Diagnostic Genetics Service</a>
 
-    </div>
-    <div class="row">
-        <div class="panel panel-default form-group" aria-multiselectable="true">
-            <div class="panel-heading">
-                <h3>{{ title }}</h3>
             </div>
-            <div class="panel-body">
-
-
-                <h4>Summary</h4>
-                <div class="table-responsive">
-                    {{ stats }}
-                </div>
-                <div>
-                    <h4>Missing Variants</h4>
-                </div>
-                <div class="table-responsive">
-                    {{ missing_variants }}
-                </div>
-                <div>
-                    <h4>Notes</h4>
-                    <textarea rows="5" class="form-control" style="min-width: 100%">{{ missing_status }}</textarea>
-                </div>
-                <div>
-                    <h4>Mismatch Variants </h4>
-                </div>
-                <div class="table-responsive">
-                    {{ mismatch_variants }}
-                </div>
-                <div>
-                    <h4>Notes</h4>
-                    <textarea rows="5" class="form-control" style="min-width: 100%">{{ mismatch_status }}</textarea>
-                </div>
-                <div class="table-responsive">
-                    <h4>Additional Variants</h4>
-                </div>
-                <div>
-                    {{ additional_variants }}
-                </div>
-                <div>
-                    <h4>Notes</h4>
-                    <textarea rows="5" class="form-control" style="min-width: 100%">{{ additional_status }}</textarea>
+            <div id="navbar" class="navbar-collapse collapse">
+                <div class="navbar-form navbar-right">
+                    <label for="complete">Complete</label>
+                    <input type="checkbox" id="checkme" name="complete">
+                    <label for="status">Status</label>
+                    <input type="checkbox" name="status">
+                    <button type="submit" class="btn btn-success"><span
+                            class="glyphicon glyphicon-floppy-disk"></span> Save Changes
+                    </button>
                 </div>
             </div>
         </div>
-        <div class="visible-print">
-            <table class="table table-stripped">
-                <tbody>
-                <tr>
-                    <td>Date of Issue:</td>
-                    <td>Version Number:</td>
-                </tr>
-                <tr>
-                    <td>Author:</td>
-                    <td>Authorised By:</td>
-                </tr>
-                </tbody>
-            </table>
+    </nav>
+    <!--<div class="container-fluid">-->
+        <!--<div class="visible-print">-->
+            <!--<table class="table table-stripped">-->
+                <!--<tbody>-->
+                <!--<tr>-->
+                    <!--<td>Sheffield Children's NHS Foundation Trust</td>-->
+                    <!--<td>Department: Sheffield Diagnostic Genetics Service</td>-->
+                <!--</tr>-->
+                <!--<tr>-->
+                    <!--<td>Title:</td>-->
+                    <!--<td>Document Reference Number:</td>-->
+                <!--</tr>-->
+                <!--</tbody>-->
+            <!--</table>-->
+        <!--</div>-->
+        <div class="row">
+            <div class="panel panel-default form-group" aria-multiselectable="true">
 
-        </div>
+                <div class="panel-heading">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h3>{{ title }} | {{ sample }}</h3>
+                        </div>
+                        <div class="col-md-6 text-right">
+                            <button type="button" class="btn btn-primary middle-block"
+                                    onclick="location.href='{{ bam_link }}';"><span
+                                    class="glyphicon glyphicon-search"></span> IGV Viewer
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="panel-body">
+
+                            <h4>Summary</h4>
+
+                    <div class="table-responsive">
+                        {{ stats }}
+                    </div>
+                    <div>
+                        <h4>Missing Variants</h4>
+                    </div>
+                    <div class="table-responsive">
+
+                        {{ missing_variants }}
+
+                    </div>
+                    <div>
+                        <h4>Notes</h4>
+                        <textarea rows="5" name="missing-notes" class="form-control" style="min-width: 100%">{{ missing_status }}</textarea>
+                    </div>
+                    <div>
+                        <h4>Mismatch Variants </h4>
+                    </div>
+                    <div class="table-responsive">
+                        {{ mismatch_variants }}
+                    </div>
+                    <div>
+                        <h4>Notes</h4>
+                        <textarea rows="5" name="mismatch-notes" class="form-control" style="min-width: 100%">{{ mismatch_status }}</textarea>
+                    </div>
+                    <div>
+                        <h4>Additional Variants</h4>
+                    </div>
+                    <div class="table-responsive">
+                        {{ additional_variants }}
+                    </div>
+                    <div>
+                        <h4>Notes</h4>
+                        <textarea rows="5" name="additional-notes" class="form-control"
+                                  style="min-width: 100%">{{ additional_status }}</textarea>
+                    </div>
+</div>
+</div>
+</form>
+<!--<div class="visible-print">-->
+    <!--<table class="table table-stripped">-->
+        <!--<tbody>-->
+        <!--<tr>-->
+            <!--<td>Date of Issue:</td>-->
+            <!--<td>Version Number:</td>-->
+        <!--</tr>-->
+        <!--<tr>-->
+            <!--<td>Author:</td>-->
+            <!--<td>Authorised By:</td>-->
+        <!--</tr>-->
+        <!--</tbody>-->
+    <!--</table>-->
+
+</div>
+</div>
+</div>
 </body>
 </html>

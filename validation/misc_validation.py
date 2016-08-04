@@ -2,10 +2,10 @@ from producers import VariantProducers
 import json
 import logging
 import pandas as pd
+import sqlite3
 import time
-from jinja2 import Environment, FileSystemLoader
 # from weasyprint import HTML
-# from pybedtools import BedTool
+from pybedtools import BedTool
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +18,9 @@ def determine_file_type(file):
     if head.startswith('Variant'):
         producer = VariantProducers.ProcessedVariantsV1
         return producer
+    if "cons_preferred_transcripts" in head:
+        producer = VariantProducers.ProcessedVariantsV3
+        return producer
     if head.startswith('chrom'):
         producer = VariantProducers.ProcessedVariantsV2
         return producer
@@ -27,6 +30,7 @@ def determine_file_type(file):
     if head.startswith('##fileformat=VCFv4.2'):
         producer = VariantProducers.GVCF
         return producer
+
 
 
 def check_match(baseline, test):
@@ -85,8 +89,8 @@ def test_mismatch_list(test_list, baseline_list, parameter, baseline_variant, te
 
 
 def make_igv_link(baseline_bam, test_bam, chrom, pos):
-    link = '<a href = "http://localhost:60151/goto?locus=' + chrom + ':' + str(
-        pos + 1) + '"><button type="button" class="btn btn-default"><span class="glyphicon glyphicon-file"></span></button></a>'
+    link = '<a href = "http://localhost:60151/goto?sort=base&locus=' + chrom + ':' + str(
+        pos + 1) + '"><button type="button" class="btn btn-default"><span class="glyphicon glyphicon-search"></span></button></a>'
     return link
 
 
@@ -108,8 +112,19 @@ def test_mismatch_list(test_list, baseline_list, parameter, baseline_variant, te
             logger.info("   TEST_VARIANT: " + str(test_variant))
             return False
 
+def select_group(id,type):
+
+    select = "<p><input size=\"50\" class=\"form-control inputwide\" list=\"reasonList\" type=\"text\" name=\"variant_"+id+"-"+type+"\"> \
+    <datalist id=\"reasonList\"> \
+    <option value=\"Strand Bias\"> \
+    <option value=\"Coverage\"> \
+    <option value=\"Artefact\"> \
+    <option value=\"Low Quality\"> \
+    </datalist></p>"
+
+    return select
+
 def validate_variants(baseline_file, baseline_bam, test_file, test_bam, sample_id, bed_file):
-    time.sleep(1)
     producer = determine_file_type(baseline_file)
     variant_producer_baseline = producer(baseline_file, sample_id)
 
@@ -121,38 +136,29 @@ def validate_variants(baseline_file, baseline_bam, test_file, test_bam, sample_i
 
     baseline_variants_by_id = {}
     test_variants_by_id = {}
+    baseline_additional = {}
+    test_additional = {}
 
     assert cmp(baseline_variants_by_id, test_variants_by_id) == 0
 
     for i in variant_producer_baseline.get_variants(bed=bed_file):
         variant = i.toJsonDict()
-        parts = variant["id"].split("_")
-        baseline_id = parts[0] + "_" + parts[1]
-        if baseline_id not in test_variants_by_id:
-            baseline_variants_by_id[baseline_id] = i
-        else:
-            print baseline_id + " MULTIPLE_CALLS"
+        baseline_variants_by_id[variant["id"]]=i
+
 
     for i in variant_producer_test.get_variants(bed=bed_file):
         variant = i.toJsonDict()
-        parts = variant["id"].split("_")
-        test_id = parts[0] + "_" + parts[1]
-        if test_id not in test_variants_by_id:
-            test_variants_by_id[test_id] = i
-        else:
-            print test_id + " MULTIPLE_CALLS"
+        test_variants_by_id[variant["id"]] = i
 
-    logger.info("Basline Variants Count: " + str(len(baseline_variants_by_id)))
+
+    logger.info("Baseline Variants Count: " + str(len(baseline_variants_by_id)))
     logger.info("Test Variants Count: " + str(len(test_variants_by_id)))
 
     shared_variants = [k for k in baseline_variants_by_id if k in test_variants_by_id]
     missing = [k for k in baseline_variants_by_id if k not in test_variants_by_id]
-    missing_count = len(missing)
 
     for m in missing:
         logger.info("MISSING_VARIANT: " + str(baseline_variants_by_id[m]))
-
-    check_variant_list = []
 
     # TODO: for vcf filter on lowquality flag in filter column
 
@@ -165,12 +171,12 @@ def validate_variants(baseline_file, baseline_bam, test_file, test_bam, sample_i
     missing_variants = {"chrom": [], "pos": [], "id": [], "ref": [], "alt": [], "qual": [], "filter": [], "info": [],
                         "key": [], "genotype": []}
 
+
     for i in missing:
         variant = baseline_variants_by_id[i].toJsonDict()
         link = make_igv_link(baseline_bam, test_bam, variant["referenceName"], variant["start"])
         missing_variants = append_variants_to_table(baseline_variants_by_id[i], missing_variants,
-                                                    additional_field=["check", "bam"], additional_value=[
-                '<input type="checkbox" name="vehicle" value="Bike">', link])
+                                                    additional_field=["reason", "bam"], additional_value=[select_group(i,"missing"), link])
 
     for i in shared_variants:
         baseline_variant = baseline_variants_by_id[i].toJsonDict()
@@ -211,13 +217,11 @@ def validate_variants(baseline_file, baseline_bam, test_file, test_bam, sample_i
 
         if genotype_check == False or alt_check == False or tx_check == False or rsid_check == False:
             mismatch_variants = append_variants_to_table(baseline_variants_by_id[i], mismatch_variants,
-                                                         additional_field=["scope", "reason", "check", "bam"],
+                                                         additional_field=["scope", "mismatch", "reason", "bam"],
                                                          additional_value=["BASELINE", "", "", ""])
             mismatch_variants = append_variants_to_table(test_variants_by_id[i], mismatch_variants,
-                                                         additional_field=["scope", "reason", "check", "bam"],
-                                                         additional_value=["TESTING", "",
-                                                                           '<input type="checkbox" name="vehicle" value="Bike">',
-                                                                           link])
+                                                         additional_field=["scope", "mismatch", "reason", "bam"],
+                                                         additional_value=["TESTING", "",select_group(i,"mismatch"),link])
             fail_reasons["MISMATCH"] += 1
 
     additional_calls = [k for k in test_variants_by_id if k not in baseline_variants_by_id]
@@ -225,32 +229,34 @@ def validate_variants(baseline_file, baseline_bam, test_file, test_bam, sample_i
         variant = test_variants_by_id[i]
         link = make_igv_link(baseline_bam, test_bam, variant.toJsonDict()["referenceName"],
                              variant.toJsonDict()["start"])
-        additional_variants = append_variants_to_table(variant, additional_variants, additional_field=["check", "bam"],
-                                                       additional_value=[
-                                                           '<input type="checkbox" name="vehicle" value="Bike">', link])
+        additional_variants = append_variants_to_table(variant, additional_variants, additional_field=["reason", "bam"],
+                                                       additional_value=[select_group(i,"additional"), link])
         logger.info("ADDITIONAL_VARIANT: " + str(variant))
 
 
     pd.set_option('display.max_colwidth', -1)
 
+
     additional_variants_pd = pd.DataFrame(additional_variants)
-    mismatch_variants_pd = pd.DataFrame(mismatch_variants)
     missing_variants_pd = pd.DataFrame(missing_variants)
+
+
+    mismatch_variants_pd = pd.DataFrame(mismatch_variants)
 
     if len(additional_variants['chrom']) > 0:
         additional_variants_pd = additional_variants_pd[
-            ['bam', 'check', 'chrom', 'pos', 'ref', 'alt', 'filter', 'key', 'genotype', 'id', 'qual', 'info']]
+            ['bam', 'reason', 'chrom', 'pos', 'ref', 'alt', 'filter', 'key', 'genotype', 'id', 'qual', 'info']]
 
     if len(mismatch_variants['chrom']) > 0:
         mismatch_variants_pd = mismatch_variants_pd[
-            ['bam', 'check', 'scope', 'chrom', 'pos', 'ref', 'alt', 'filter', 'key', 'genotype', 'id', 'qual', 'info']]
+            ['bam', 'reason', 'scope', 'chrom', 'pos', 'ref', 'alt', 'filter', 'key', 'genotype', 'id', 'qual', 'info']]
         mismatch_status = 'FAIL'
     else:
         mismatch_status = 'PASS'
     if len(missing_variants['chrom']) > 0:
         missing_variants_pd = missing_variants_pd[
-            ['bam', 'check', 'chrom', 'pos', 'ref', 'alt', 'filter', 'key', 'genotype', 'id', 'qual', 'info']]
-    print missing_variants_pd
+            ['bam', 'reason', 'chrom', 'pos', 'ref', 'alt', 'filter', 'key', 'genotype', 'id', 'qual', 'info']]
+    # print missing_variants_pd
     # missing_variants_pd = missing_variants_pd.loc[missing_variants_pd['filter'] != 'LowQual']
     missing_variants_pass_count = len(missing_variants_pd.index)
     # mismatch_variants_pd = mismatch_variants_pd.loc[mismatch_variants_pd['filter'] == "PASS"]
@@ -264,22 +270,19 @@ def validate_variants(baseline_file, baseline_bam, test_file, test_bam, sample_i
         'Pass Variants Missing (All)': [str(additional_variants_pass_count) + " (" + str(len(additional_calls)) + ")",
                                         str(missing_variants_pass_count) + " (" + str(len(missing)) + ")"],
         'Variants Shared': [len(shared_variants), len(shared_variants)],
-        'Variants Fail Mismatch': ['-', fail_reasons["MISMATCH"]]})
-
+    'Variants Fail Mismatch': ['-', fail_reasons["MISMATCH"]]})
 
 
     template_vars = {"title": "Validation Report: " + sample_id,
-                     "stats": stats.to_html(index=False, justify="left", classes=["table table-bordered table-striped"]),
-                     "bam_link": "http://localhost:60151/load?file=http://10.182.131.21" + baseline_bam + ",http://10.182.131.21" + test_bam + "&merge=false",
-                     "missing_variants": missing_variants_pd.to_html(index=False, justify="left", escape=False,
-                                                                     classes=["table table-bordered table-striped"]),
-                     "mismatch_variants": mismatch_variants_pd.to_html(index=False, justify="left", escape=False,
-                                                                       classes=["table table-bordered table-striped"]),
-                     "mismatch_status": mismatch_status,
-                     "additional_variants": additional_variants_pd.to_html(index=False, justify="left", escape=False,
-                                                                           classes=["table table-bordered table-striped"])}
-    return template_vars
+                 "stats": stats,
+                 "bam_link": "http://localhost:60151/load?file=http://10.182.131.21" + baseline_bam + ",http://10.182.131.21" + test_bam + "&merge=false",
+                 "missing_variants": missing_variants_pd,
+                 "mismatch_variants": mismatch_variants_pd,
+                 "mismatch_status": mismatch_status,
+                 "additional_variants": additional_variants_pd
+                 }
 
+    return template_vars
 
 
 def validate_stats():

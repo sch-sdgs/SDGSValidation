@@ -525,7 +525,7 @@ def bcftools_isec(file_prefix, decomposed_zipped, bed_prefix, bed_dict):
         remainder_length = remainder_size(bed_prefix)
         print remainder_length
         print total_bases
-        percent_covered = remainder_length / float((total_bases + remainder_length))
+        percent_covered = float(total_bases) / (total_bases + remainder_length) * 100
 
 
         out = {'false_negative':false_negs_ann, 'false_positive':false_pos_ann,

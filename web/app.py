@@ -30,5 +30,5 @@ def variant_validation():
                            additional_variants=Markup(result["additional_variants"]))
 
 if __name__ == "__main__":
-    # app.run(host= '10.182.131.21')
-    app.run()
+    app.run(host= '10.182.131.21', port='5001')
+    #app.run()

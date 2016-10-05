@@ -128,8 +128,7 @@ def prepare_vcf(directory, file_prefix):
     decomposed_zipped = decomposed + '.gz'
 
     try:
-        command = '/results/Pipeline/program/vt/vt decompose ' +  directory + "/" + file_prefix + '_Variants.vcf -o ' +
-        decomposed
+        command = '/results/Pipeline/program/vt/vt decompose ' +  directory + "/" + file_prefix + '_Variants.vcf -o ' + decomposed
         subprocess.check_call(command, shell=True)
     except subprocess.CalledProcessError as e:
         print 'Error executing command:' + str(e.returncode)
@@ -326,11 +325,12 @@ def annotate_false_pos(folder, coverage_file, sample):
 
     return variants
 
-def check_genotype(folder, sample):
+def check_genotype(folder, sample, coverage_file):
     """
 
     :param folder:
     :param sample:
+    :param coverage_file:
     :return:
     """
     shared_giab = VariantFile(folder + '/0002.vcf')
@@ -367,9 +367,34 @@ def check_genotype(folder, sample):
             0] == giab_genotype[1] and rec.samples[sample]['GT'][1] == giab_genotype[0]:
             matching += 1
         else:
-            variant = {'chrom':chrom, 'pos':pos, 'ref':alleles[0], 'alt':alleles[1], 'QUAL':rec.qual,
-                            'GT':{sample:rec.samples[sample]['GT'], 'GIAB':giab_genotype},
-                            'vcf_depth':{'DP':total_depth, 'AD':allelic_depth}}
+            if len(rec.alleles[0]) == 1 and len(rec.alleles[1]) == 1:
+                search = '\'' + rec.contig + '\s' + str(rec.pos - 1) + '\''
+                command = 'grep ' + search + ' ' + coverage_file
+                try:
+                    line = subprocess.check_output(command, shell=True)
+                except subprocess.CalledProcessError as e:
+                    print 'Error executing command: ' + str(e.returncode)
+                    exit(1)
+                if line == '':
+                    variant = {'chrom': chrom, 'pos': pos, 'ref': alleles[0], 'alt': alleles[1], 'QUAL': rec.qual,
+                               'GT': {sample: rec.samples[sample]['GT'], 'GIAB': giab_genotype},
+                               'vcf_depth': {'DP': total_depth, 'AD': allelic_depth},
+                               'coverage':{'total':'no coverage information', 'ref':'N/A', 'alt':'N/A'}}
+                else:
+                    bases = {'A': 3, 'C': 4, 'G': 5, 'T': 6}
+                    fields = line.split()
+                    cov = fields[2]
+                    ref_cov = fields[bases[rec.alleles[0]]]
+                    alt_cov = fields[bases[rec.alleles[1]]]
+                    variant = {'chrom':chrom, 'pos':pos, 'ref':alleles[0], 'alt':alleles[1], 'QUAL':rec.qual,
+                                    'GT':{sample:rec.samples[sample]['GT'], 'GIAB':giab_genotype},
+                                    'vcf_depth':{'DP':total_depth, 'AD':allelic_depth},
+                                    'coverage':{'total':cov, 'ref':ref_cov, 'alt':alt_cov}}
+            else:
+                variant = {'chrom': chrom, 'pos': pos, 'ref': alleles[0], 'alt': alleles[1], 'QUAL': rec.qual,
+                           'GT': {sample: rec.samples[sample]['GT'], 'GIAB': giab_genotype},
+                           'vcf_depth': {'DP': total_depth, 'AD': allelic_depth},
+                           'coverage': {'total': 'indel: no coverage could be obtained', 'ref': 'N/A', 'alt': 'N/A'}}
             variants.append(variant)
     print str(matching) + ' matching variants'
     results = {'matching':matching, 'mismatching':variants}
@@ -463,7 +488,7 @@ def bcftools_isec(file_prefix, decomposed_zipped, bed_prefix, bed_dict):
         false_negs_ann = annotate_false_negs(folder, coverage_file)
         false_pos_ann = annotate_false_pos(folder, coverage_file, sample)
         print 'Checking genotype for shared calls.'
-        genotypes = check_genotype(folder, sample)
+        genotypes = check_genotype(folder, sample, coverage_file)
 
         false_negs = len(false_negs_ann)
         false_pos = len(false_pos_ann)

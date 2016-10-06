@@ -28,7 +28,7 @@ def generate_remainder(whole_bed, bed_prefix, bed_list):
     :param whole_bed: path to the truth regions for the whole panel
     :param bed_prefix: prefix used for all the bed files
     :param bed_list: list of all the bed files for that panel
-    :return:
+    :return: BEDTool containing any regions that are completely missing from the truth regions
     """
 
     whole_truth = BedTool(whole_bed)
@@ -51,11 +51,14 @@ def generate_remainder(whole_bed, bed_prefix, bed_list):
 
     remainder = whole_merged.subtract(whole_truth)
     remainder.moveto('/results/Analysis/MiSeq/MasterBED/GIAB/' + bed_prefix + '.remainder.bed')
+    missing_regions = whole_merged.subtract(whole_truth, A=True)
+    return missing_regions
 
-def generate_bed_intersects(bed_prefix):
+def generate_bed_intersects(bed_prefix, directory):
     """
     Creates the intersected BED file for the broad panel and each sub panel associated with the given abbreviation
     :param bed_prefix: The prefix given to each of the BED files within the panel
+    :param directory: location of pipeline output
     :return: dictionary containing the abbreviations for each of the one-based bed files
     """
     print 'Getting BED files.'
@@ -111,7 +114,8 @@ def generate_bed_intersects(bed_prefix):
         os.remove(no_header)
 
     whole_bed = generate_whole_bed(truth_regions, bedtool_list, bed_prefix)
-    generate_remainder(whole_bed, bed_prefix, bed_files)
+    missing_regions = generate_remainder(whole_bed, bed_prefix, bed_files)
+    missing_regions.moveto(directory + '/missing_regions.bed')
 
     print 'BED files produced correctly.'
     return bed_dict
@@ -552,7 +556,7 @@ def main():
     file_prefix=args.p
     bed_prefix=args.b
 
-    bed_dict = generate_bed_intersects(bed_prefix)
+    bed_dict = generate_bed_intersects(bed_prefix, directory)
 
     decomposed_zipped = prepare_vcf(directory, file_prefix)
 

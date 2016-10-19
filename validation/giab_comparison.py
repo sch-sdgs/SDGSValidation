@@ -6,6 +6,7 @@ from pybedtools import BedTool
 from pysam import VariantFile
 from math import sqrt
 import json
+import re
 
 def generate_whole_bed(truth_regions, bedtool_list, bed_prefix):
     """
@@ -62,7 +63,8 @@ def generate_bed_intersects(bed_prefix, directory):
     :return: dictionary containing the abbreviations for each of the one-based bed files
     """
     print 'Getting BED files.'
-    path = '/results/Analysis/MiSeq/MasterBED/' + bed_prefix + "*"
+    path = '/results/Analysis/projects/IEM/' +  bed_prefix + "*"
+    #path = '/results/Analysis/MiSeq/MasterBED/' + bed_prefix + "*"
     bed_files = glob.glob(path)
 
     if len(bed_files) == 0:
@@ -129,7 +131,8 @@ def prepare_vcf(directory, file_prefix):
     """
     print 'Preparing vcf.'
     decomposed = directory + "/" + file_prefix + '_Variants.decomposed.vcf'
-    decomposed_zipped = decomposed + '.gz'
+    normalized = directory + "/" + file_prefix + '_Variants.normalized.vcf'
+    decomposed_zipped = normalized + '.gz'
 
     try:
         command = '/results/Pipeline/program/vt/vt decompose ' +  directory + "/" + file_prefix + '_Variants.vcf -o ' + decomposed
@@ -139,7 +142,14 @@ def prepare_vcf(directory, file_prefix):
         exit(1)
 
     try:
-        command = 'bgzip ' + decomposed
+        command = '/results/Pipeline/program/vt/vt normalize -r /results/Pipeline/reference/hg19/hg19.fasta -o ' + normalized + ' ' + decomposed
+        subprocess.check_call(command, shell=True)
+    except subprocess.CalledProcessError as e:
+        print 'Error executing command:' + str(e.returncode)
+        exit(1)
+
+    try:
+        command = 'bgzip ' + normalized
         subprocess.check_call(command, shell=True)
     except subprocess.CalledProcessError as e:
         print 'Error executing command: ' + str(e.returncode)
@@ -166,7 +176,8 @@ def get_coverage(bed_prefix, directory, file_prefix):
     """
     print 'Generating coverage stats.'
     whole_bed = '/results/Analysis/MiSeq/MasterBED/GIAB/' + bed_prefix + '.whole.bed'
-    bam = directory + '/' + file_prefix + '_Aligned_Sorted_Clipped_PCRDuped_IndelsRealigned.bam'
+    bam = directory + '/' + file_prefix + '.bam'
+    #bam = directory + '/' + file_prefix + '_Aligned_Sorted_Clipped_PCRDuped_IndelsRealigned.bam'
     out = directory + '/giab_results/whole_bed_coverage.txt'
     command = '/results/Pipeline/program/sambamba/build/sambamba depth base --min-coverage=0 -q29 -m -L ' + whole_bed + \
               ' ' + bam + ' > ' + out + '.tmp'
@@ -197,8 +208,11 @@ def get_coverage(bed_prefix, directory, file_prefix):
     missing_file = directory + '/giab_results/regions_missing'
     missing_regions.moveto(missing_file)
     print 'Generating file'
-    sample_split = file_prefix.split('-')
-    sample = sample_split[1] + '-' + sample_split[2]
+    if re.match('-', file_prefix):
+        sample_split = file_prefix.split('-')
+        sample = sample_split[1] + '-' + sample_split[2]
+    else:
+        sample = file_prefix
     command = '''while read i; do start=`echo "$i"|cut -f2`; end=`echo "$i"|cut -f3`; chr=`echo "$i"|cut -f1`; end_true=`echo "${end} - 1" | bc`; for j in $(seq $start $end_true); do new_end=`echo -e "${j} + 1" | bc`; echo -e "$chr\\t${j}\\t0\\t0\\t0\\t0\\t0\\t0\\t0\\t''' + sample + '''";done;done < ''' + missing_file + '> ' + directory + '/to_add'
     print command
     try:
@@ -447,8 +461,11 @@ def bcftools_isec(file_prefix, decomposed_zipped, bed_prefix, bed_dict):
     :return: Analysis of variant comparison
     """
     print 'Comparing vcfs.'
-    sample_split = file_prefix.split('-')
-    sample = sample_split[1] + '-' + sample_split[2]
+    if re.match('-', file_prefix):
+        sample_split = file_prefix.split('-')
+        sample = sample_split[1] + '-' + sample_split[2]
+    else:
+        sample = file_prefix
 
     directory = os.path.dirname(decomposed_zipped)
     results = directory + '/giab_results'

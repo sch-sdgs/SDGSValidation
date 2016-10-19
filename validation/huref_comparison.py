@@ -7,118 +7,118 @@ from pysam import VariantFile
 from math import sqrt
 import json
 
-# def generate_whole_bed(truth_regions, bedtool_list, bed_prefix):
-#     """
-#     Generate broad BEd file for the regions that overlap with the truth set
-#     :param truth_regions: GIAB truth regions
-#     :param bedtool_list: list of BED files in the panel (as BEDTools)
-#     :param bed_prefix: Prefix used for all BED files in the panel
-#     :return: filepath to the final BED file
-#     """
-#     whole_region = truth_regions.intersect(bedtool_list)
-#     whole_region_sorted = whole_region.sort()
-#     whole_region_merged = whole_region_sorted.merge()
-#     whole_bed = '/results/Analysis/projects/NBS/' + bed_prefix + '.whole.bed'
-#     whole_region_merged.moveto(whole_bed)
-#     return whole_bed
-#
-# def generate_remainder(whole_bed, bed_prefix, bed_list):
-#     """
-#     Calculate the remaining regions that are not included in the truth set
-#     :param whole_bed: path to the truth regions for the whole panel
-#     :param bed_prefix: prefix used for all the bed files
-#     :param bed_list: list of all the bed files for that panel
-#     :return: BEDTool containing any regions that are completely missing from the truth regions
-#     """
-#
-#     whole_truth = BedTool(whole_bed)
-#     whole_truth.saveas()
-#     whole = BedTool()
-#
-#     for bed in bed_list:
-#         print bed
-#         tool = BedTool(bed)
-#         tool.saveas()
-#         if bed == bed_list[0]:
-#             whole = tool
-#         else:
-#             whole = whole.cat(tool)
-#             whole.saveas()
-#
-#     whole_sorted = whole.sort()
-#     whole_merged = whole_sorted.merge()
-#     whole_merged.saveas()
-#
-#     remainder = whole_merged.subtract(whole_truth)
-#     remainder.moveto('/results/Analysis/projects/NBS/' + bed_prefix + '.remainder.bed')
-#     missing_regions = whole_merged.subtract(whole_truth, A=True)
-#     return missing_regions
-#
-# def generate_bed_intersects(bed_prefix, directory):
-#     """
-#     Creates the intersected BED file for the broad panel and each sub panel associated with the given abbreviation
-#     :param bed_prefix: The prefix given to each of the BED files within the panel
-#     :param directory: location of pipeline output
-#     :return: dictionary containing the abbreviations for each of the one-based bed files
-#     """
-#     print 'Getting BED files.'
-#     path = '/results/Analysis/projects/NBS/' + bed_prefix + "*"
-#     bed_files = glob.glob(path)
-#
-#     if len(bed_files) == 0:
-#         print 'No BED files found with that prefix'
-#         exit(1)
-#
-#     bed_dict = {}
-#     bedtool_list = []
-#     truth_regions = BedTool('/results/Analysis/projects/NBS/' + bed_prefix + '.bed')
-#
-#     print 'Generating truth regions.'
-#     for f in bed_files:
-#         name = os.path.basename(f)
-#         no_header = '/results/Analysis/projects/NBS/' + name.replace('.bed', '_noheader.bed')
-#         one_based = '/results/Analysis/projects/NBS/' + name.replace('.bed', '_truth_regions_1based.bed')
-#         truth_regions_panel = '/results/Analysis/projects/NBS/' + name.replace('.bed', '_truth_regions.bed')
-#
-#         #Create BED file without header for intersect
-#         command = "grep -i -v start " + f + " > " + no_header
-#         try:
-#             subprocess.check_call(command, shell=True)
-#         except subprocess.CalledProcessError as e:
-#             print 'Error executing command: ' + str(e.returncode)
-#             exit(1)
-#
-#         #Intersect BEDs
-#         panel_bed = BedTool(no_header)
-#
-#         intersect = truth_regions.intersect(panel_bed)
-#         intersect.saveas(truth_regions_panel)
-#         bedtool_list.append(intersect)
-#
-#         #Create one-based BED file for use with bcftools
-#         command = "awk '{print($1\"\t\"$2+1\"\t\"$3)}' " + truth_regions_panel + " > " + one_based
-#         try:
-#             subprocess.check_call(command, shell=True)
-#         except subprocess.CalledProcessError as e:
-#             print 'Error executing command: ' + str(e.returncode)
-#             exit(1)
-#
-#         #find the bed abbreviation from the file on the server to name the result files
-#         #command = "grep " + name + " /results/Analysis/projects/NBS/NBS2_GIAB/abbreviated_bed_names.txt | cut -f2"
-#         try:
-#             abv = bed_prefix
-#             bed_dict[one_based] = abv.strip()
-#         except subprocess.CalledProcessError as e:
-#             print 'Error executing command: ' + str(e.returncode)
-#             exit(1)
-#         os.remove(no_header)
-#
-#     whole_bed = generate_whole_bed(truth_regions, bedtool_list, bed_prefix)
-#     missing_regions = generate_remainder(whole_bed, bed_prefix, bed_files)
-#     missing_regions.moveto(directory + '/missing_regions.bed')
-#
-#     print 'BED files produced correctly.'
-#     return bed_dict
+def generate_whole_bed(truth_regions, bedtool_list, bed_prefix):
+    """
+    Generate broad BEd file for the regions that overlap with the truth set
+    :param truth_regions: GIAB truth regions
+    :param bedtool_list: list of BED files in the panel (as BEDTools)
+    :param bed_prefix: Prefix used for all BED files in the panel
+    :return: filepath to the final BED file
+    """
+    whole_region = truth_regions.intersect(bedtool_list)
+    whole_region_sorted = whole_region.sort()
+    whole_region_merged = whole_region_sorted.merge()
+    whole_bed = '/results/Analysis/projects/IEM/' + bed_prefix + '_whole.bed'
+    whole_region_merged.moveto(whole_bed)
+    return whole_bed
+
+def generate_remainder(whole_bed, bed_prefix, bed_list):
+    """
+    Calculate the remaining regions that are not included in the truth set
+    :param whole_bed: path to the truth regions for the whole panel
+    :param bed_prefix: prefix used for all the bed files
+    :param bed_list: list of all the bed files for that panel
+    :return: BEDTool containing any regions that are completely missing from the truth regions
+    """
+
+    whole_truth = BedTool(whole_bed)
+    whole_truth.saveas()
+    whole = BedTool()
+
+    for bed in bed_list:
+        print bed
+        tool = BedTool(bed)
+        tool.saveas()
+        if bed == bed_list[0]:
+            whole = tool
+        else:
+            whole = whole.cat(tool)
+            whole.saveas()
+
+    whole_sorted = whole.sort()
+    whole_merged = whole_sorted.merge()
+    whole_merged.saveas()
+
+    remainder = whole_merged.subtract(whole_truth)
+    remainder.moveto('/results/Analysis/projects/IEM/' + bed_prefix + '.remainder.bed')
+    missing_regions = whole_merged.subtract(whole_truth, A=True)
+    return missing_regions
+
+def generate_bed_intersects(bed_prefix, directory):
+    """
+    Creates the intersected BED file for the broad panel and each sub panel associated with the given abbreviation
+    :param bed_prefix: The prefix given to each of the BED files within the panel
+    :param directory: location of pipeline output
+    :return: dictionary containing the abbreviations for each of the one-based bed files
+    """
+    print 'Getting BED files.'
+    path = '/results/Analysis/projects/IEM/' + bed_prefix + "*"
+    bed_files = glob.glob(path)
+
+    if len(bed_files) == 0:
+        print 'No BED files found with that prefix'
+        exit(1)
+
+    bed_dict = {}
+    bedtool_list = []
+    truth_regions = BedTool('/results/Analysis/MiSeq/MasterBED/GIAB/truth_regions.bed')
+
+    print 'Generating truth regions.'
+    for f in bed_files:
+        #name = os.path.basename(f)
+        no_header = '/results/Analysis/projects/IEM/' + bed_prefix + '_noheader.bed'
+        one_based = '/results/Analysis/projects/IEM/' + bed_prefix + '_truth_regions_1based.bed'
+        truth_regions_panel = '/results/Analysis/projects/IEM/' + bed_prefix + '_truth_regions.bed'
+
+        #Create BED file without header for intersect
+        command = "grep -i -v start " + f + " > " + no_header
+        try:
+            subprocess.check_call(command, shell=True)
+        except subprocess.CalledProcessError as e:
+            print 'Error executing command: ' + str(e.returncode)
+            exit(1)
+
+        #Intersect BEDs
+        panel_bed = BedTool(no_header)
+
+        intersect = truth_regions.intersect(panel_bed)
+        intersect.saveas(truth_regions_panel)
+        bedtool_list.append(intersect)
+
+        #Create one-based BED file for use with bcftools
+        command = "awk '{print($1\"\t\"$2+1\"\t\"$3)}' " + truth_regions_panel + " > " + one_based
+        try:
+            subprocess.check_call(command, shell=True)
+        except subprocess.CalledProcessError as e:
+            print 'Error executing command: ' + str(e.returncode)
+            exit(1)
+
+        #find the bed abbreviation from the file on the server to name the result files
+        #command = "grep " + name + " /results/Analysis/projects/NBS/NBS2_GIAB/abbreviated_bed_names.txt | cut -f2"
+        try:
+            abv = bed_prefix
+            bed_dict[one_based] = abv.strip()
+        except subprocess.CalledProcessError as e:
+            print 'Error executing command: ' + str(e.returncode)
+            exit(1)
+        os.remove(no_header)
+
+    whole_bed = generate_whole_bed(truth_regions, bedtool_list, bed_prefix)
+    missing_regions = generate_remainder(whole_bed, bed_prefix, bed_files)
+    missing_regions.moveto(directory + '/missing_regions.bed')
+
+    print 'BED files produced correctly.'
+    return bed_dict
 
 def prepare_vcf(directory, file_prefix):
     """
@@ -173,9 +173,9 @@ def get_coverage(bed_prefix, directory, file_prefix):
     :return out: filename for coverage stats
     """
     print 'Generating coverage stats.'
-    whole_bed = '/results/Analysis/projects/NBS/' + bed_prefix + '.bed'
+    whole_bed = '/results/Analysis/projects/IEM/' + bed_prefix + '_whole.bed'
     bam = directory + '/' + file_prefix + '.bam'
-    out = directory + '/giab_results/whole_bed_coverage.txt'
+    out = directory + '/huref_results/whole_bed_coverage.txt'
     command = '/results/Pipeline/program/sambamba/build/sambamba depth base --min-coverage=0 -q29 -m -L ' + whole_bed + \
               ' ' + bam + ' > ' + out + '.tmp'
     try:
@@ -202,7 +202,7 @@ def get_coverage(bed_prefix, directory, file_prefix):
     whole_bedtool = BedTool(whole_bed)
     print 'Intersecting'
     missing_regions = whole_bedtool.intersect(coverage_bed, v=True)
-    missing_file = directory + '/giab_results/regions_missing'
+    missing_file = directory + '/huref_results/regions_missing'
     missing_regions.moveto(missing_file)
     print 'Generating file'
     #sample_split = file_prefix.split('-')
@@ -246,7 +246,7 @@ def annotate_false_negs(folder, coverage_file):
             ref = rec.alleles[0]
             alt = rec.alleles[1]
             qual = rec.qual
-            genotype = rec.samples['venter.sg_st']['GT']
+            genotype = rec.samples['Venter.il_st']['GT']
             if len(rec.alleles[0]) == 1 and len(rec.alleles[1]) == 1:
                 search = '\'' + rec.contig + '\s' + str(rec.pos - 1) + '\''
                 command = 'grep ' + search + ' ' + coverage_file
@@ -360,7 +360,7 @@ def check_genotype(folder, sample, coverage_file):
         if pos not in vars_giab[chrom]:
             vars_giab[chrom][pos] = {}
         if alleles not in vars_giab[chrom][pos]:
-            vars_giab[chrom][pos][alleles] = rec.samples['venter.sg_st']['GT']
+            vars_giab[chrom][pos][alleles] = rec.samples['Venter.il_st']['GT']
 
     matching = 0
     for rec in shared_patient.fetch():
@@ -420,29 +420,29 @@ def file_len(fname):
             pass
     return i + 1
 
-# def remainder_size(bed_prefix):
-#     """
-#     Calculate the number of bases in the broad panel not included in the truth regions
-#     :param bed_prefix: prefix used for all bed files in the panel (used to create remainder file name
-#     :return:total length of regions in bed file
-#     """
-#     remainder  = '/results/Analysis/projects/NBS/' + bed_prefix + '.remainder.bed'
-#     f = open(remainder, 'r')
-#     regions = [line.strip('\n') for line in f.readlines()]
-#
-#     total_length = 0
-#
-#     for region in regions:
-#         fields = region.split('\t')
-#         start = int(fields[1])
-#         end = int(fields[2])
-#
-#         length = end - start
-#         total_length += length
-#
-#     return total_length
+def remainder_size(bed_prefix):
+    """
+    Calculate the number of bases in the broad panel not included in the truth regions
+    :param bed_prefix: prefix used for all bed files in the panel (used to create remainder file name
+    :return:total length of regions in bed file
+    """
+    remainder  = '/results/Analysis/projects/IEM/' + bed_prefix + '.remainder.bed'
+    f = open(remainder, 'r')
+    regions = [line.strip('\n') for line in f.readlines()]
 
-def bcftools_isec(file_prefix, decomposed_zipped, bed_prefix):
+    total_length = 0
+
+    for region in regions:
+        fields = region.split('\t')
+        start = int(fields[1])
+        end = int(fields[2])
+
+        length = end - start
+        total_length += length
+
+    return total_length
+
+def bcftools_isec(file_prefix, decomposed_zipped, bed_prefix, bed_dict):
     """
     Intersect the two vcfs and limit to the truth regions and panel BED file.
     The method counts the number of false positives and false negatives and checks the genotype of all of the matching
@@ -459,7 +459,7 @@ def bcftools_isec(file_prefix, decomposed_zipped, bed_prefix):
     sample = file_prefix
 
     directory = os.path.dirname(decomposed_zipped)
-    results = directory + '/giab_results'
+    results = directory + '/huref_results'
     try:
         os.mkdir(results)
     except OSError as e:
@@ -468,28 +468,28 @@ def bcftools_isec(file_prefix, decomposed_zipped, bed_prefix):
         if e.errno != 17:
             exit(1)
 
-    # path = '/results/Analysis/projects/NBS/' + bed_prefix + '*truth_regions_1based.bed'
-    # bed_files = glob.glob(path)
+    path = '/results/Analysis/projects/IEM/' + bed_prefix + '*truth_regions_1based.bed'
+    bed_files = glob.glob(path)
 
     coverage_file = get_coverage(bed_prefix, directory, file_prefix)
 
     all_results = {}
     folder = results + '/' + bed_prefix
 
-    # for f in bed_files:
-    #     abv = bed_dict[f]
-    #     print abv
-    #     folder = results + '/' + abv
-    #     try:
-    #         os.mkdir(folder)
-    #     except OSError as e:
-    #         if e.errno != 17:
-    #             print folder
-    #             print e.errno
-    #             exit(1)
+    for f in bed_files:
+        abv = bed_dict[f]
+        print abv
+        folder = results + '/' + abv
+        try:
+            os.mkdir(folder)
+        except OSError as e:
+            if e.errno != 17:
+                print folder
+                print e.errno
+                exit(1)
 
-    command = '/results/Pipeline/program/bcftools-1.3.1/bcftools isec -R /results/Analysis/projects/NBS/' + bed_prefix + '.bed -p ' + folder + \
-              ' /results/Analysis/projects/NBS/HuRef_sg.vcf.gz ' + \
+    command = '/results/Pipeline/program/bcftools-1.3.1/bcftools isec -R ' + f + ' -p ' + folder + \
+              ' /results/Analysis/projects/NBS/HuRef_il.vcf.gz ' + \
               decomposed_zipped
     try:
         subprocess.check_call(command, shell=True)
@@ -564,11 +564,11 @@ def main():
     file_prefix=args.p
     bed_prefix=args.b
 
-    #bed_dict = generate_bed_intersects(bed_prefix, directory)
+    bed_dict = generate_bed_intersects(bed_prefix, directory)
 
     decomposed_zipped = prepare_vcf(directory, file_prefix)
 
-    results = bcftools_isec(file_prefix, decomposed_zipped, bed_prefix)
+    results = bcftools_isec(file_prefix, decomposed_zipped, bed_prefix, bed_dict)
 
     f = open(directory+'/huref_summary.txt', 'w')
     j = json.dumps(results, indent=4)

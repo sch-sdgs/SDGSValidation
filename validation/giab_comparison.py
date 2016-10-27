@@ -10,7 +10,7 @@ import re
 
 def generate_whole_bed(truth_regions, bedtool_list, bed_prefix):
     """
-    Generate broad BEd file for the regions that overlap with the truth set
+    Generate broad BED file for the regions that overlap with the truth set
     :param truth_regions: GIAB truth regions
     :param bedtool_list: list of BED files in the panel (as BEDTools)
     :param bed_prefix: Prefix used for all BED files in the panel
@@ -345,11 +345,11 @@ def annotate_false_pos(folder, coverage_file, sample):
 
 def check_genotype(folder, sample, coverage_file):
     """
-
-    :param folder:
-    :param sample:
-    :param coverage_file:
-    :return:
+    Compares the genotype for all shared variants
+    :param folder: location of results from the NGS analysis pipeline
+    :param sample:  sample number (used in vcf file)
+    :param coverage_file: file containing coverage information for each position in the panel
+    :return: dictionary of number of matching variants and detailed information for any with mismatching genotypes
     """
     shared_giab = VariantFile(folder + '/0002.vcf')
     shared_patient = VariantFile(folder + '/0003.vcf')
@@ -383,6 +383,10 @@ def check_genotype(folder, sample, coverage_file):
             matching += 1
         elif (rec.samples[sample]['GT'][0] is None or rec.samples[sample]['GT'][0] == 1) and rec.samples[sample]['GT'][
             0] == giab_genotype[1] and rec.samples[sample]['GT'][1] == giab_genotype[0]:
+            matching += 1
+        elif rec.samples[sample]['GT'][0] == 0 and rec.samples[sample]['GT'][1] == 1 and giab_genotype[0] == 1 and giab_genotype[1] == 0:
+            matching += 1
+        elif rec.samples[sample]['GT'][0] == 1 and rec.samples[sample]['GT'][1] == 0 and giab_genotype[0] == 0 and giab_genotype[1] == 1:
             matching += 1
         else:
             if len(rec.alleles[0]) == 1 and len(rec.alleles[1]) == 1:
@@ -418,13 +422,6 @@ def check_genotype(folder, sample, coverage_file):
     results = {'matching':matching, 'mismatching':variants}
     print results
     return results
-
-def file_len(fname):
-    i = 0
-    with open(fname) as f:
-        for i, l in enumerate(f):
-            pass
-    return i + 1
 
 def remainder_size(bed_prefix):
     """
@@ -485,7 +482,7 @@ def bcftools_isec(file_prefix, decomposed_zipped, bed_prefix, bed_dict):
     all_results = {}
 
     for f in bed_files:
-        abv = bed_dict[f]
+        abv = bed_dict[f]['abv']
         print abv
         folder = results + '/' + abv
         try:
@@ -517,17 +514,17 @@ def bcftools_isec(file_prefix, decomposed_zipped, bed_prefix, bed_dict):
         num_mismatch = len(genotypes['mismatching'])
         true_positives = num_matching + num_mismatch
 
-        total_bases = file_len(coverage_file) - 1 #-1 for header line
+        total_bases = int(bed_dict[f]['length'])
         true_negatives = total_bases - (false_negs + false_pos + num_mismatch + num_matching)
 
         if true_negatives == 0:
             print 'ERROR: Coverage file empty'
             exit(1)
 
-        print num_matching
-        print true_positives
-        sensitivity = (num_matching + num_mismatch) / float((true_positives + false_pos)) * 100
-        print sensitivity
+        try:
+            sensitivity = (num_matching + num_mismatch) / float((true_positives + false_pos)) * 100
+        except ZeroDivisionError:
+            sensitivity = 0.0
 
         total_pos = true_positives + false_pos
         actual_pos = true_positives + false_negs
@@ -539,20 +536,16 @@ def bcftools_isec(file_prefix, decomposed_zipped, bed_prefix, bed_dict):
         else:
             denominator = total_pos * total_negs * actual_pos * actual_negs
 
-        mcc = (true_positives * true_negatives - false_pos * false_negs)/\
+        mcc = (true_positives * true_negatives - false_pos * false_negs) / \
               sqrt(denominator)
-        print mcc
 
         remainder_length = remainder_size(bed_prefix)
-        print remainder_length
-        print total_bases
         percent_covered = float(total_bases) / (total_bases + remainder_length) * 100
 
-
-        out = {'false_negative':false_negs_ann, 'false_positive':false_pos_ann,
-                   'mismatching_genotype':genotypes['mismatching'], 'matching_variants':genotypes['matching'],
-                   'num_true_negatives':true_negatives, 'sensitivity':sensitivity, 'MCC':mcc,
-                   'remainder_length':remainder_length, 'percent_covered':percent_covered}
+        out = {'false_negative': false_negs_ann, 'false_positive': false_pos_ann,
+               'mismatching_genotype': genotypes['mismatching'], 'matching_variants': genotypes['matching'],
+               'num_true_negatives': true_negatives, 'sensitivity': sensitivity, 'MCC': mcc,
+               'broad_panel_remainder_length': remainder_length, 'percent_broad_panel_covered': percent_covered}
 
         all_results[abv] = out
 

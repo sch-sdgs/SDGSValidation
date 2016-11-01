@@ -122,20 +122,19 @@ def generate_bed_intersects(bed_prefix, directory):
     print 'BED files produced correctly.'
     return bed_dict
 
-def prepare_vcf(directory, file_prefix):
+def prepare_vcf(vcf):
     """
-    vcf must be decomposed, zipped and indexed before it can be used with bcftools
-    :param directory: The directory containing the results of the NGS pipeline
-    :param file_prefix: The prefix associated with the files produced by the NGS pipeline (i.e. worklist-patient)
+    vcf must be decomposed, normalised and zipped and indexed before it can be used with bcftools
+    :param vcf: The filepath to the original vcf
     :return: filepath to the decomposed and zipped vcf
     """
     print 'Preparing vcf.'
-    decomposed = directory + "/" + file_prefix + '_Variants.decomposed.vcf'
-    normalised = directory + "/" + file_prefix + '_Variants.decomposed.normailsed.vcf'
+    decomposed = vcf.replace('.vcf', '.decomposed.vcf')
+    normalised = vcf.replace('.vcf', '.decomposed.normailsed.vcf')
     normalised_zipped = normalised + '.gz'
 
     try:
-        command = '/results/Pipeline/program/vt/vt decompose ' +  directory + "/" + file_prefix + '_Variants.vcf -o ' + decomposed
+        command = '/results/Pipeline/program/vt/vt decompose ' +  vcf + ' -o ' + decomposed
         subprocess.check_call(command, shell=True)
     except subprocess.CalledProcessError as e:
         print 'Error executing command:' + str(e.returncode)
@@ -166,7 +165,7 @@ def prepare_vcf(directory, file_prefix):
     print 'vcf decomposed and zipped successfully.'
     return normalised_zipped
 
-def get_coverage(bed_prefix, directory, file_prefix):
+def get_coverage(bed_prefix, directory, file_prefix, bam):
     """
     Coverage at all positions is calculated. This is then used for coverage analysis and to determine read depth at any
     false negative sites
@@ -175,10 +174,8 @@ def get_coverage(bed_prefix, directory, file_prefix):
     :param file_prefix: prefix used for all files in pipeline i.e. worklist-patient
     :return out: filename for coverage stats
     """
-    #TODO change BAM path so filename is not required
     print 'Generating coverage stats.'
     whole_bed = '/results/Analysis/MiSeq/MasterBED/GIAB/' + bed_prefix + '.whole.bed'
-    bam = directory + '/' + file_prefix + '_Aligned_Sorted_Clipped_PCRDuped_IndelsRealigned.bam'
     out = directory + '/giab_results/whole_bed_coverage.txt'
     command = '/results/Pipeline/program/sambamba/build/sambamba depth base --min-coverage=0 -q29 -m -L ' + whole_bed + \
               ' ' + bam + ' > ' + out + '.tmp'
@@ -443,7 +440,7 @@ def remainder_size(bed_prefix):
 
     return total_length
 
-def bcftools_isec(file_prefix, decomposed_zipped, bed_prefix, bed_dict):
+def bcftools_isec(file_prefix, decomposed_zipped, bed_prefix, bed_dict, bam):
     """
     Intersect the two vcfs and limit to the truth regions and panel BED file.
     The method counts the number of false positives and false negatives and checks the genotype of all of the matching
@@ -472,7 +469,7 @@ def bcftools_isec(file_prefix, decomposed_zipped, bed_prefix, bed_dict):
     path = '/results/Analysis/MiSeq/MasterBED/GIAB/' + bed_prefix + '*truth_regions_1based.bed'
     bed_files = glob.glob(path)
 
-    coverage_file = get_coverage(bed_prefix, directory, file_prefix)
+    coverage_file = get_coverage(bed_prefix, directory, file_prefix, bam)
 
     all_results = {}
 
@@ -517,7 +514,7 @@ def bcftools_isec(file_prefix, decomposed_zipped, bed_prefix, bed_dict):
             exit(1)
 
         try:
-            sensitivity = (num_matching + num_mismatch) / float((true_positives + false_pos)) * 100
+            sensitivity = (num_matching + num_mismatch) / float((true_positives + false_negs)) * 100
         except ZeroDivisionError:
             sensitivity = 0.0
 
@@ -549,23 +546,27 @@ def bcftools_isec(file_prefix, decomposed_zipped, bed_prefix, bed_dict):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-d', help='Location of output from pipeline', required=True)
+    parser.add_argument('-o', help='Location of output', required=True)
     parser.add_argument('-p', help='Prefix given to all results files (i.e. woklist-patient)', required=True)
     parser.add_argument('-b', help='Prefix associated with panel BED files (i.e. NGD_)', required=True)
+    parser.add_argument('-bam', help='BAM file for run', required=True)
+    parser.add_argument('-v', help='VCF to be compared', required=True)
 
     args = parser.parse_args()
 
-    directory=args.d
+    directory=args.o
     if directory.endswith('/'):
         directory = os.path.dirname(directory)
+    vcf = args.v
     file_prefix=args.p
     bed_prefix=args.b
+    bam = args.bam
 
     bed_dict = generate_bed_intersects(bed_prefix, directory)
 
-    decomposed_zipped = prepare_vcf(directory, file_prefix)
+    decomposed_zipped = prepare_vcf(vcf)
 
-    results = bcftools_isec(file_prefix, decomposed_zipped, bed_prefix, bed_dict)
+    results = bcftools_isec(file_prefix, decomposed_zipped, bed_prefix, bed_dict, bam)
 
     f = open(directory+'/giab_summary.txt', 'w')
     j = json.dumps(results, indent=4)

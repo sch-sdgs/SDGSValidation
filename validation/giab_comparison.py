@@ -63,8 +63,8 @@ def generate_bed_intersects(bed_prefix, directory):
     :return: dictionary containing the abbreviations for each of the one-based bed files
     """
     print 'Getting BED files.'
-    path = '/results/Analysis/projects/IEM/' +  bed_prefix + "*"
-    #path = '/results/Analysis/MiSeq/MasterBED/' + bed_prefix + "*"
+    #path = '/results/Analysis/projects/IEM/' +  bed_prefix + "*"
+    path = '/results/Analysis/MiSeq/MasterBED/' + bed_prefix + "*"
     bed_files = glob.glob(path)
 
     if len(bed_files) == 0:
@@ -381,8 +381,11 @@ def check_genotype(folder, sample, coverage_file):
         giab_genotype = vars_giab[chrom][pos][alleles]
         if rec.samples[sample]['GT'] == giab_genotype:
             matching += 1
-        elif (rec.samples[sample]['GT'][0] is None or rec.samples[sample]['GT'][0] == 1) and rec.samples[sample]['GT'][
-            0] == giab_genotype[1] and rec.samples[sample]['GT'][1] == giab_genotype[0]:
+        elif (rec.samples[sample]['GT'][0] is None and rec.samples[sample]['GT'][1] == 1) and (rec.samples[sample]['GT'][
+            1] == giab_genotype[1] or rec.samples[sample]['GT'][1] == giab_genotype[0]):
+            matching += 1
+        elif (rec.samples[sample]['GT'][1] is None and rec.samples[sample]['GT'][0] == 1) and (rec.samples[sample]['GT'][
+            0] == giab_genotype[1] or rec.samples[sample]['GT'][0] == giab_genotype[0]):
             matching += 1
         elif rec.samples[sample]['GT'][0] == 0 and rec.samples[sample]['GT'][1] == 1 and giab_genotype[0] == 1 and giab_genotype[1] == 0:
             matching += 1
@@ -422,6 +425,13 @@ def check_genotype(folder, sample, coverage_file):
     results = {'matching':matching, 'mismatching':variants}
     print results
     return results
+
+def file_len(fname):
+    i = 0
+    with open(fname) as f:
+        for i, l in enumerate(f):
+            pass
+    return i + 1
 
 def remainder_size(bed_prefix):
     """
@@ -482,7 +492,7 @@ def bcftools_isec(file_prefix, decomposed_zipped, bed_prefix, bed_dict):
     all_results = {}
 
     for f in bed_files:
-        abv = bed_dict[f]['abv']
+        abv = bed_dict[f]
         print abv
         folder = results + '/' + abv
         try:
@@ -514,7 +524,8 @@ def bcftools_isec(file_prefix, decomposed_zipped, bed_prefix, bed_dict):
         num_mismatch = len(genotypes['mismatching'])
         true_positives = num_matching + num_mismatch
 
-        total_bases = int(bed_dict[f]['length'])
+        #total_bases = int(bed_dict[f]['length'])
+        total_bases = file_len(coverage_file) - 1  # -1 for header line
         true_negatives = total_bases - (false_negs + false_pos + num_mismatch + num_matching)
 
         if true_negatives == 0:
@@ -522,7 +533,7 @@ def bcftools_isec(file_prefix, decomposed_zipped, bed_prefix, bed_dict):
             exit(1)
 
         try:
-            sensitivity = (num_matching + num_mismatch) / float((true_positives + false_pos)) * 100
+            sensitivity = (num_matching + num_mismatch) / float((true_positives + false_negs)) * 100
         except ZeroDivisionError:
             sensitivity = 0.0
 

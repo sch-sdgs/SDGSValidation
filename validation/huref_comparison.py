@@ -375,8 +375,15 @@ def check_genotype(folder, sample, coverage_file):
         giab_genotype = vars_giab[chrom][pos][alleles]
         if rec.samples[sample]['GT'] == giab_genotype:
             matching += 1
-        elif (rec.samples[sample]['GT'][0] is None or rec.samples[sample]['GT'][0] == 1) and rec.samples[sample]['GT'][
-            0] == giab_genotype[1] and rec.samples[sample]['GT'][1] == giab_genotype[0]:
+        elif (rec.samples[sample]['GT'][0] is None and rec.samples[sample]['GT'][1] == 1) and (rec.samples[sample]['GT'][
+            1] == giab_genotype[1] or rec.samples[sample]['GT'][1] == giab_genotype[0]):
+            matching += 1
+        elif (rec.samples[sample]['GT'][1] is None and rec.samples[sample]['GT'][0] == 1) and (rec.samples[sample]['GT'][
+            0] == giab_genotype[1] or rec.samples[sample]['GT'][0] == giab_genotype[0]):
+            matching += 1
+        elif rec.samples[sample]['GT'][0] == 0 and rec.samples[sample]['GT'][1] == 1 and giab_genotype[0] == 1 and giab_genotype[1] == 0:
+            matching += 1
+        elif rec.samples[sample]['GT'][0] == 1 and rec.samples[sample]['GT'][1] == 0 and giab_genotype[0] == 0 and giab_genotype[1] == 1:
             matching += 1
         else:
             if len(rec.alleles[0]) == 1 and len(rec.alleles[1]) == 1:
@@ -518,7 +525,7 @@ def bcftools_isec(file_prefix, decomposed_zipped, bed_prefix, bed_dict):
 
     print num_matching
     print true_positives
-    sensitivity = (num_matching + num_mismatch) / float((true_positives + false_pos)) * 100
+    sensitivity = (num_matching + num_mismatch) / float((true_positives + false_negs)) * 100
     print sensitivity
 
     total_pos = true_positives + false_pos

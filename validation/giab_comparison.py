@@ -562,6 +562,14 @@ def main():
     bed_prefix=args.b
     bam = args.bam
 
+    command = 'export PATH=${PATH}:/results/Pipeline/program/bedtools-2.17.0/bin'
+    try:
+        subprocess.check_call(command, shell=True)
+    except subprocess.CalledProcessError as e:
+        print(command)
+        print('Error executing command: ' + str(e.returncode))
+        exit(1)
+
     bed_dict = generate_bed_intersects(bed_prefix, directory)
 
     decomposed_zipped = prepare_vcf(vcf)

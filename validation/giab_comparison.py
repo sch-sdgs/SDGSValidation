@@ -19,7 +19,7 @@ def generate_whole_bed(truth_regions, bedtool_list, bed_prefix):
     whole_region = truth_regions.intersect(bedtool_list)
     whole_region_sorted = whole_region.sort()
     whole_region_merged = whole_region_sorted.merge()
-    whole_bed = '/results/Analysis/MiSeq/MasterBED/GIAB/' + bed_prefix + '.whole.bed'
+    whole_bed = '/results/Analysis/projects/NBS/' + bed_prefix + '.whole.bed'
     whole_region_merged.moveto(whole_bed)
     return whole_bed
 
@@ -51,7 +51,7 @@ def generate_remainder(whole_bed, bed_prefix, bed_list):
     whole_merged.saveas()
 
     remainder = whole_merged.subtract(whole_truth)
-    remainder.moveto('/results/Analysis/MiSeq/MasterBED/GIAB/' + bed_prefix + '.remainder.bed')
+    remainder.moveto('/results/Analysis/projects/NBS/' + bed_prefix + '.remainder.bed')
     missing_regions = whole_merged.subtract(whole_truth, A=True)
     return missing_regions
 
@@ -64,7 +64,7 @@ def generate_bed_intersects(bed_prefix, directory):
     """
     print 'Getting BED files.'
     #path = '/results/Analysis/projects/IEM/' +  bed_prefix + "*"
-    path = '/results/Analysis/MiSeq/MasterBED/' + bed_prefix + "*"
+    path = '/results/Analysis/projects/NBS/' + bed_prefix + "*"
     bed_files = glob.glob(path)
 
     if len(bed_files) == 0:
@@ -78,9 +78,9 @@ def generate_bed_intersects(bed_prefix, directory):
     print 'Generating truth regions.'
     for f in bed_files:
         name = os.path.basename(f)
-        no_header = '/results/Analysis/MiSeq/MasterBED/GIAB/' + name.replace('.bed', '_noheader.bed')
-        one_based = '/results/Analysis/MiSeq/MasterBED/GIAB/' + name.replace('.bed', '_truth_regions_1based.bed')
-        truth_regions_panel = '/results/Analysis/MiSeq/MasterBED/GIAB/' + name.replace('.bed', '_truth_regions.bed')
+        no_header = '/results/Analysis/projects/NBS/' + name.replace('.bed', '_noheader.bed')
+        one_based = '/results/Analysis/projects/NBS/' + name.replace('.bed', '_truth_regions_1based.bed')
+        truth_regions_panel = '/results/Analysis/projects/NBS/' + name.replace('.bed', '_truth_regions.bed')
 
         #Create BED file without header for intersect
         command = "grep -i -v start " + f + " > " + no_header
@@ -175,7 +175,7 @@ def get_coverage(bed_prefix, directory, file_prefix):
     :return out: filename for coverage stats
     """
     print 'Generating coverage stats.'
-    whole_bed = '/results/Analysis/MiSeq/MasterBED/GIAB/' + bed_prefix + '.whole.bed'
+    whole_bed = '/results/Analysis/projects/NBS/' + bed_prefix + '.whole.bed'
     bam = directory + '/' + file_prefix + '.bam'
     #bam = directory + '/' + file_prefix + '_Aligned_Sorted_Clipped_PCRDuped_IndelsRealigned.bam'
     out = directory + '/giab_results/whole_bed_coverage.txt'
@@ -439,7 +439,7 @@ def remainder_size(bed_prefix):
     :param bed_prefix: prefix used for all bed files in the panel (used to create remainder file name
     :return:total length of regions in bed file
     """
-    remainder  = '/results/Analysis/MiSeq/MasterBED/GIAB/' + bed_prefix + '.remainder.bed'
+    remainder  = '/results/Analysis/projects/NBS/' + bed_prefix + '.remainder.bed'
     f = open(remainder, 'r')
     regions = [line.strip('\n') for line in f.readlines()]
 
@@ -484,7 +484,7 @@ def bcftools_isec(file_prefix, decomposed_zipped, bed_prefix, bed_dict):
         if e.errno != 17:
             exit(1)
 
-    path = '/results/Analysis/MiSeq/MasterBED/GIAB/' + bed_prefix + '*truth_regions_1based.bed'
+    path = '/results/Analysis/projects/NBS/' + bed_prefix + '*truth_regions_1based.bed'
     bed_files = glob.glob(path)
 
     coverage_file = get_coverage(bed_prefix, directory, file_prefix)

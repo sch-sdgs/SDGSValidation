@@ -26,7 +26,7 @@ def generate_gene_dict(beds, output_folder):
     all_lines = []
 
     for bed in beds:
-        f = open('/results/Analysis/MiSeq/MasterBED/' + bed, 'r')
+        f = open('/results/Analysis/projects/NBS/' + bed, 'r')
         lines = [line.strip('\n') for line in f.readlines()]
         f.close()
 
@@ -37,7 +37,7 @@ def generate_gene_dict(beds, output_folder):
                 all_lines.append(line)
 
     raw_regions = '\n'.join(all_lines)
-    f = open ('/home/bioinfo/Natalie/Validation/refactor_test/raw_regions.bed', 'w')
+    f = open ('/results/Analysis/projects/NBS/raw_regions.bed', 'w')
     f.write(raw_regions)
     f.close()
 
@@ -90,27 +90,29 @@ def generate_bed_dict(beds, output_folder):
     bed_dict = {}
     for bed in beds:
         # find the bed abbreviation from the file on the server to name the result files
-        command = "grep " + bed + " /results/Analysis/MiSeq/MasterBED/abbreviated_bed_names.txt | cut -f2"
+        #command = "grep " + bed + " /results/Analysis/MiSeq/MasterBED/abbreviated_bed_names.txt | cut -f2"
         try:
-            abv = subprocess.check_output(command, shell=True).replace('\n', '')
-            print(abv)
-            if not abv:
-                print('No abv found for ' + bed)
-                abv = bed
+            # abv = subprocess.check_output(command, shell=True).replace('\n', '')
+            # print(abv)
+            # if not abv:
+            #     print('No abv found for ' + bed)
+            #     abv = bed
+            abv = 'NBS1'
             bed_dict[abv] = {'name':bed, 'regions':{}}
 
-            f = open('/results/Analysis/MiSeq/MasterBED/' + bed, 'r')
+            f = open('/results/Analysis/projects/NBS/' + bed, 'r')
             lines = [line.strip('\n') for line in f.readlines()]
             f.close()
 
             for line in lines:
-                if line == lines[0]:
-                    continue
+                #if line == lines[0]:
+                    #continue
                 fields = line.split('\t')
                 chrom = fields[0]
                 start = int(fields[1])
                 end = int(fields[2])
                 name = fields[3]
+                #print name
                 if chrom not in bed_dict[abv]['regions']:
                     bed_dict[abv]['regions'][chrom] = collections.OrderedDict()
                     bed_dict[abv]['regions'][chrom][name] = {'start':start, 'end':end, 'coverage':{}}
@@ -142,8 +144,9 @@ def get_coverage(coverage_input, bed_dict):
 
         for line in lines:
             #ignore header line
-            if line == lines[0] and bed != 'genes':
-                continue
+            #if line == lines[0] and bed != 'genes':
+                #continue
+            #print line
             fields = line.split('\t')
             chrom = fields[0]
             start = int(fields[1])
@@ -169,7 +172,6 @@ def get_coverage(coverage_input, bed_dict):
             for name in bed_dict[abv]['regions'][chrom].keys():
                 start = bed_dict[abv]['regions'][chrom][name]['start']
                 end = bed_dict[abv]['regions'][chrom][name]['end']
-
                 #calculate average coverage and portions for region plots
                 count_less_18 = 0
                 count_18_30 = 0
@@ -343,12 +345,15 @@ def generate_gene_plots(gene_dict, coverage, output_folder):
     :return:
     """
 
+#print coverage['chr1']['76190447']['cov']
+
     chroms = ['chr1', 'chr2', 'chr3', 'chr4', 'chr5', 'chr6', 'chr7', 'chr8', 'chr9', 'chr10', 'chr11', 'chr12',
               'chr13', 'chr14', 'chr15', 'chr16', 'chr17', 'chr18', 'chr19', 'chr20', 'chr21', 'chr22', 'chrX',
               'chrY']
     for chrom in chroms:
         try:
             for gene in gene_dict[chrom].keys():
+                #print gene
                 if output_folder.endswith('/'):
                     output_file = output_folder + gene + '_plot.png'
                 else:
@@ -361,7 +366,8 @@ def generate_gene_plots(gene_dict, coverage, output_folder):
 
                 start = gene_dict[chrom][gene]['start']
                 end = gene_dict[chrom][gene]['end']
-
+                # print start
+                # print end
                 plot_list = {}
                 plot_number = 0
                 new_plot = False
@@ -387,8 +393,10 @@ def generate_gene_plots(gene_dict, coverage, output_folder):
                                                       'min': region_min, 'avg': region_avg}
                             plot_number += 1
                             new_plot = False
+                        #print coverage[chrom][i]['name']
                         region_name = coverage[chrom][i]['name']
-                        exon = region_name.split('-')[1]
+                        #print region_name
+                        exon = region_name.split('_')[1]
                         intron_number += 1
                         cov_mean = numpy.mean(cov)
                         cov_max = max(cov)
@@ -429,7 +437,7 @@ def generate_gene_plots(gene_dict, coverage, output_folder):
                                   transform=subplots.transAxes)
                 else:
                     reverse = False
-                    if int(plot_list[0]['title'].replace('exon', '')) > int(plot_list[1]['title'].replace('exon', '')):
+                    if float(plot_list[0]['title'].replace('Ex', '')) > float(plot_list[1]['title'].replace('Ex', '')):
                         reverse = True
                     i = 0
                     for ax in subplots.flatten():

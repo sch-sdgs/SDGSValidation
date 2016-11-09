@@ -15,6 +15,8 @@ logging.basicConfig(level=logging.ERROR)
 def determine_file_type(file):
     f = open(file)
     head = f.readline()
+    if head.startswith('#'):
+        head = f.readline()
     if head.startswith('Variant'):
         producer = VariantProducers.ProcessedVariantsV1
         return producer
@@ -256,7 +258,7 @@ def validate_variants(baseline_file, baseline_bam, test_file, test_bam, sample_i
     if len(missing_variants['chrom']) > 0:
         missing_variants_pd = missing_variants_pd[
             ['bam', 'reason', 'chrom', 'pos', 'ref', 'alt', 'filter', 'key', 'genotype', 'id', 'qual', 'info']]
-    # print missing_variants_pd
+    # #print missing_variants_pd
     # missing_variants_pd = missing_variants_pd.loc[missing_variants_pd['filter'] != 'LowQual']
     missing_variants_pass_count = len(missing_variants_pd.index)
     # mismatch_variants_pd = mismatch_variants_pd.loc[mismatch_variants_pd['filter'] == "PASS"]
@@ -283,6 +285,42 @@ def validate_variants(baseline_file, baseline_bam, test_file, test_bam, sample_i
                  }
 
     return template_vars
+
+def shared_variants(baseline_file, baseline_bam, test_file, test_bam, sample_id, bed_file):
+    producer = determine_file_type(baseline_file)
+    variant_producer_baseline = producer(baseline_file, sample_id)
+
+    producer = determine_file_type(test_file)
+    variant_producer_test = producer(test_file, sample_id)
+
+    logger.info("Baseline File: " + baseline_file)
+    logger.info("Test File: " + test_file)
+
+    baseline_variants_by_id = {}
+    test_variants_by_id = {}
+
+
+    assert cmp(baseline_variants_by_id, test_variants_by_id) == 0
+
+    for i in variant_producer_baseline.get_variants(bed=bed_file):
+        variant = i.toJsonDict()
+        baseline_variants_by_id[variant["id"]]=i
+
+
+    for i in variant_producer_test.get_variants(bed=bed_file):
+        variant = i.toJsonDict()
+        test_variants_by_id[variant["id"]] = i
+
+
+    logger.info("Baseline Variants Count: " + str(len(baseline_variants_by_id)))
+    logger.info("Test Variants Count: " + str(len(test_variants_by_id)))
+
+    shared_variants = [k for k in baseline_variants_by_id if k in test_variants_by_id]
+
+    return shared_variants
+
+
+
 
 
 def validate_stats():

@@ -37,8 +37,8 @@ def form():
     #                                 paths[i][w][s].append(f)
 
 
-    in_progress = os.listdir("web/in_progress")
-    complete = os.listdir("web/complete_validations")
+    in_progress = os.listdir("in_progress")
+    complete = os.listdir("complete_validations")
     return render_template('validation_home.html', complete=complete, in_progress=in_progress)
 
 @app.route('/save_form/', methods=['POST'])

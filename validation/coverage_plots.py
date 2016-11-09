@@ -79,12 +79,11 @@ def generate_gene_dict(beds, output_folder):
     return gene_dict
 
 
-def generate_bed_dict(beds, output_folder):
+def generate_bed_dict(beds):
     """
     Generate a dictionary of bed files using their abbreviation as the key.
     The dictionary include the regions within the BED file and the coverage values will be added to this subsequently.
     :param beds: list of bed files
-    :param output_folder: folder to save any output files
     :return: dictionary of BED files with the abbreviation as the key
     """
     bed_dict = {}
@@ -371,6 +370,7 @@ def generate_gene_plots(gene_dict, coverage, output_folder):
                 for i in range(start, end - 1):
                     try:
                         cov = coverage[chrom][i]['cov']
+
                         if new_plot:
                             print('plot added')
                             region_max = numpy.array(maximums)
@@ -483,7 +483,7 @@ def main():
         exit(1)
 
     #generate dictionaries
-    bed_dict = generate_bed_dict(beds, output_folder)
+    bed_dict = generate_bed_dict(beds)
     coverage, bed_dict = get_coverage(coverage_input, bed_dict)
     gene_dict = generate_gene_dict(beds,output_folder)
 

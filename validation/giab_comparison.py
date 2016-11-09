@@ -13,7 +13,7 @@ def generate_whole_bed(truth_regions, bedtool_list, bed_prefix):
     :param truth_regions: GIAB truth regions
     :param bedtool_list: list of BED files in the panel (as BEDTools)
     :param bed_prefix: Prefix used for all BED files in the panel
-    :return: filepath to the final BED file
+    :return: File path to the final BED file
     """
     whole_region = truth_regions.intersect(bedtool_list)
     whole_region_sorted = whole_region.sort()
@@ -36,7 +36,7 @@ def generate_remainder(whole_bed, bed_prefix, bed_list):
     whole = BedTool()
 
     for bed in bed_list:
-        print bed
+        print(bed)
         tool = BedTool(bed)
         tool.saveas()
         if bed == bed_list[0]:
@@ -61,19 +61,19 @@ def generate_bed_intersects(bed_prefix, directory):
     :param directory: location of pipeline output
     :return: dictionary containing the abbreviations for each of the one-based bed files
     """
-    print 'Getting BED files.'
+    print('Getting BED files.')
     path = '/results/Analysis/MiSeq/MasterBED/' + bed_prefix + "*"
     bed_files = glob.glob(path)
 
     if len(bed_files) == 0:
-        print 'No BED files found with that prefix'
+        print('No BED files found with that prefix')
         exit(1)
 
     bed_dict = {}
     bedtool_list = []
     truth_regions = BedTool('/results/Analysis/MiSeq/MasterBED/GIAB/truth_regions.bed')
 
-    print 'Generating truth regions.'
+    print('Generating truth regions.')
     for f in bed_files:
         name = os.path.basename(f)
         no_header = '/results/Analysis/MiSeq/MasterBED/GIAB/' + name.replace('.bed', '_noheader.bed')
@@ -85,7 +85,7 @@ def generate_bed_intersects(bed_prefix, directory):
         try:
             subprocess.check_call(command, shell=True)
         except subprocess.CalledProcessError as e:
-            print 'Error executing command: ' + str(e.returncode)
+            print('Error executing command: ' + str(e.returncode))
             exit(1)
 
         #Intersect BEDs
@@ -100,18 +100,22 @@ def generate_bed_intersects(bed_prefix, directory):
         try:
             subprocess.check_call(command, shell=True)
         except subprocess.CalledProcessError as e:
-            print 'Error executing command: ' + str(e.returncode)
+            print('Error executing command: ' + str(e.returncode))
             exit(1)
 
         #find the bed abbreviation from the file on the server to name the result files
         command_grep = "grep " + name + " /results/Analysis/MiSeq/MasterBED/abbreviated_bed_names.txt | cut -f2"
-        command_length = "awk '{SUM += $3-$2} END {print SUM}' " + no_header
+        command_length = "awk '{SUM += $3-$2} END {print SUM}' " + truth_regions_panel
         try:
             abv = subprocess.check_output(command_grep, shell=True)
             bed_length = subprocess.check_output(command_length, shell=True)
+            try:
+                int(bed_length)
+            except ValueError:
+                bed_length = 0
             bed_dict[one_based] = {'abv':abv.strip(), 'length':bed_length}
         except subprocess.CalledProcessError as e:
-            print 'Error executing command: ' + str(e.returncode)
+            print('Error executing command: ' + str(e.returncode))
             exit(1)
         os.remove(no_header)
 
@@ -119,25 +123,25 @@ def generate_bed_intersects(bed_prefix, directory):
     missing_regions = generate_remainder(whole_bed, bed_prefix, bed_files)
     missing_regions.moveto(directory + '/missing_regions.bed')
 
-    print 'BED files produced correctly.'
+    print('BED files produced correctly.')
     return bed_dict
 
 def prepare_vcf(vcf):
     """
     vcf must be decomposed, normalised and zipped and indexed before it can be used with bcftools
-    :param vcf: The filepath to the original vcf
-    :return: filepath to the decomposed and zipped vcf
+    :param vcf: The file path to the original vcf
+    :return: File path to the decomposed and zipped vcf
     """
-    print 'Preparing vcf.'
+    print('Preparing vcf.')
     decomposed = vcf.replace('.vcf', '.decomposed.vcf')
-    normalised = vcf.replace('.vcf', '.decomposed.normailsed.vcf')
+    normalised = vcf.replace('.vcf', '.decomposed.normalised.vcf')
     normalised_zipped = normalised + '.gz'
 
     try:
         command = '/results/Pipeline/program/vt/vt decompose ' +  vcf + ' -o ' + decomposed
         subprocess.check_call(command, shell=True)
     except subprocess.CalledProcessError as e:
-        print 'Error executing command:' + str(e.returncode)
+        print('Error executing command:' + str(e.returncode))
         exit(1)
 
     try:
@@ -145,24 +149,24 @@ def prepare_vcf(vcf):
                   '/results/Pipeline/program/GATK_resource_bundle/ucsc.hg19.nohap.masked.fasta -o ' + normalised
         subprocess.check_call(command, shell=True)
     except subprocess.CalledProcessError as e:
-        print 'Error executing command:' + str(e.returncode)
+        print('Error executing command:' + str(e.returncode))
         exit(1)
 
     try:
         command = 'bgzip ' + normalised
         subprocess.check_call(command, shell=True)
     except subprocess.CalledProcessError as e:
-        print 'Error executing command: ' + str(e.returncode)
+        print('Error executing command: ' + str(e.returncode))
         exit(1)
 
     try:
         command = 'tabix ' + normalised_zipped
         subprocess.check_call(command, shell=True)
     except subprocess.CalledProcessError as e:
-        print 'Error executing command: ' + str(e.returncode)
+        print('Error executing command: ' + str(e.returncode))
         exit(1)
 
-    print 'vcf decomposed and zipped successfully.'
+    print('vcf decomposed and zipped successfully.')
     return normalised_zipped
 
 def get_coverage(bed_prefix, directory, file_prefix, bam):
@@ -172,9 +176,10 @@ def get_coverage(bed_prefix, directory, file_prefix, bam):
     :param bed_prefix: all regions in the bed files submitted are in a file generated during intersections
     :param directory: location of patient results
     :param file_prefix: prefix used for all files in pipeline i.e. worklist-patient
+    :param bam: path to BAM file to be used in coverage calculation
     :return out: filename for coverage stats
     """
-    print 'Generating coverage stats.'
+    print('Generating coverage stats.')
     whole_bed = '/results/Analysis/MiSeq/MasterBED/GIAB/' + bed_prefix + '.whole.bed'
     out = directory + '/giab_results/whole_bed_coverage.txt'
     command = '/results/Pipeline/program/sambamba/build/sambamba depth base --min-coverage=0 -q29 -m -L ' + whole_bed + \
@@ -182,47 +187,46 @@ def get_coverage(bed_prefix, directory, file_prefix, bam):
     try:
         subprocess.check_call(command, shell=True)
     except subprocess.CalledProcessError as e:
-        print 'Error executing command:' + str(e.returncode)
+        print('Error executing command:' + str(e.returncode))
         exit(1)
-    print 'Sambamba complete.'
+    print('Sambamba complete.')
     #issue with sambamba that leaves out regions that have 0 coverage - intersect regions to find missing and add
     # them to the file at coverage 0
     temp_bed = out.replace('.txt', '.bed.tmp')
     command = 'awk \'{print($1"\\t"$2"\\t"$2+1"\\t"$3)}\' ' + out + '.tmp | grep -v "COV" > ' + temp_bed
-    print command
+    print(command)
     try:
         subprocess.check_call(command, shell=True)
-        print 'BED coordinates extracted.'
+        print('BED coordinates extracted.')
     except subprocess.CalledProcessError as e:
-        print 'Error executing command:' + str(e.returncode)
+        print('Error executing command:' + str(e.returncode))
         exit(1)
 
-
     coverage_bed = BedTool(temp_bed)
-    print 'BED tool created'
+    print('BED tool created')
     whole_bedtool = BedTool(whole_bed)
-    print 'Intersecting'
+    print('Intersecting')
     missing_regions = whole_bedtool.intersect(coverage_bed, v=True)
     missing_file = directory + '/giab_results/regions_missing'
     missing_regions.moveto(missing_file)
-    print 'Generating file'
+    print('Generating file')
     sample_split = file_prefix.split('-')
     sample = sample_split[1] + '-' + sample_split[2]
     command = '''while read i; do start=`echo "$i"|cut -f2`; end=`echo "$i"|cut -f3`; chr=`echo "$i"|cut -f1`; end_true=`echo "${end} - 1" | bc`; for j in $(seq $start $end_true); do new_end=`echo -e "${j} + 1" | bc`; echo -e "$chr\\t${j}\\t0\\t0\\t0\\t0\\t0\\t0\\t0\\t''' + sample + '''";done;done < ''' + missing_file + '> ' + directory + '/to_add'
-    print command
+    print(command)
     try:
         subprocess.check_call(command, shell=True)
     except subprocess.CalledProcessError as e:
-        print 'Error executing command:' + str(e.returncode)
+        print('Error executing command:' + str(e.returncode))
         exit(1)
 
     command = 'cat ' + out + '.tmp ' + directory + '/to_add > ' + out
     try:
         subprocess.check_call(command, shell=True)
     except subprocess.CalledProcessError as e:
-        print 'Error executing command:' + str(e.returncode)
+        print('Error executing command:' + str(e.returncode))
         exit(1)
-    print 'fix complete.'
+    print('fix complete.')
     return out
 
 def annotate_false_negs(folder, coverage_file):
@@ -235,12 +239,12 @@ def annotate_false_negs(folder, coverage_file):
     """
     false_negs = VariantFile(folder + '/0000.vcf')
     num_neg = len(list(false_negs.fetch()))
-    print num_neg
+    print(num_neg)
 
     variants = []
 
     if num_neg > 0:
-        print 'false negatives'
+        print('false negatives')
         for rec in false_negs.fetch():
             chrom = rec.contig
             pos = int(rec.pos)
@@ -254,7 +258,7 @@ def annotate_false_negs(folder, coverage_file):
                 try:
                     line = subprocess.check_output(command, shell=True)
                 except subprocess.CalledProcessError as e:
-                    print 'Error executing command: ' + str(e.returncode)
+                    print('Error executing command: ' + str(e.returncode))
                     exit(1)
 
                 if line == '':
@@ -274,7 +278,7 @@ def annotate_false_negs(folder, coverage_file):
                                                         'alt':'N/A'}}
             variants.append(variant)
     else:
-        print 'no false negatives'
+        print('no false negatives')
 
     return variants
 
@@ -289,12 +293,12 @@ def annotate_false_pos(folder, coverage_file, sample):
     """
     false_pos = VariantFile(folder + '/0001.vcf')
     num_pos = len(list(false_pos.fetch()))
-    print num_pos
+    print(num_pos)
 
     variants = []
 
     if num_pos > 0:
-        print 'false positives'
+        print('false positives')
         for rec in false_pos.fetch():
             chrom = rec.contig
             pos = int(rec.pos)
@@ -313,7 +317,7 @@ def annotate_false_pos(folder, coverage_file, sample):
                 try:
                     line = subprocess.check_output(command, shell=True)
                 except subprocess.CalledProcessError as e:
-                    print 'Error executing command: ' + str(e.returncode)
+                    print('Error executing command: ' + str(e.returncode))
                     exit(1)
                 if line == '':
                     variant = {'chrom':chrom, 'pos':pos, 'ref':ref, 'alt':alt, 'QUAL':qual,
@@ -334,7 +338,7 @@ def annotate_false_pos(folder, coverage_file, sample):
                            'coverage':{'total':'indel: no coverage could be obtained', 'ref':'N/A', 'alt':'N/A'}}
             variants.append(variant)
     else:
-        print 'no false positives'
+        print('no false positives')
 
     return variants
 
@@ -390,7 +394,7 @@ def check_genotype(folder, sample, coverage_file):
                 try:
                     line = subprocess.check_output(command, shell=True)
                 except subprocess.CalledProcessError as e:
-                    print 'Error executing command: ' + str(e.returncode)
+                    print('Error executing command: ' + str(e.returncode))
                     exit(1)
                 if line == '':
                     variant = {'chrom': chrom, 'pos': pos, 'ref': alleles[0], 'alt': alleles[1], 'QUAL': rec.qual,
@@ -413,20 +417,35 @@ def check_genotype(folder, sample, coverage_file):
                            'vcf_depth': {'DP': total_depth, 'AD': allelic_depth},
                            'coverage': {'total': 'indel: no coverage could be obtained', 'ref': 'N/A', 'alt': 'N/A'}}
             variants.append(variant)
-    print str(matching) + ' matching variants'
+    print(str(matching) + ' matching variants')
     results = {'matching':matching, 'mismatching':variants}
-    print results
+    print(results)
     return results
 
-def remainder_size(bed_prefix):
+def remainder_size(bed_file):
     """
     Calculate the number of bases in the broad panel not included in the truth regions
-    :param bed_prefix: prefix used for all bed files in the panel (used to create remainder file name
+    :param bed_file: file path to the specific panel bed file
     :return:total length of regions in bed file
     """
-    remainder  = '/results/Analysis/MiSeq/MasterBED/GIAB/' + bed_prefix + '.remainder.bed'
-    f = open(remainder, 'r')
+    print('Calculating remainder')
+    print(bed_file)
+    original_bed = bed_file.replace('/GIAB', '').replace('_truth_regions_1based', '')
+    print(original_bed)
+    truth_region_bed = bed_file.replace('_1based', '')
+    print(truth_region_bed)
+
+    truth_region_tool = BedTool(truth_region_bed)
+
+    original_tool = BedTool(original_bed)
+
+    remainder_name = bed_file.replace('_truth_regions_1based', '_remainder')
+    remainder_bed = original_tool.subtract(truth_region_tool)
+    remainder_bed.saveas(remainder_name)
+
+    f = open(remainder_name, 'r')
     regions = [line.strip('\n') for line in f.readlines()]
+    f.close()
 
     total_length = 0
 
@@ -447,12 +466,13 @@ def bcftools_isec(file_prefix, decomposed_zipped, bed_prefix, bed_dict, bam):
     variants.
     Any false negatives are investigated in terms of depth
     :param file_prefix: Prefix given to all files during the NGS pipeline (i.e. worklist-patient)
-    :param decomposed_zipped: Filepath for the decomposed and zipped vcf
+    :param decomposed_zipped: File path for the decomposed and zipped vcf
     :param bed_prefix: Prefix for the BED files in the panel
     :param bed_dict: Dictionary containing the abbreviations for each of the BED files - to be used as folder names
+    :param bam: Path to BAM file to be used in coverage calculation
     :return: Analysis of variant comparison
     """
-    print 'Comparing vcfs.'
+    print('Comparing vcfs.')
     sample_split = file_prefix.split('-')
     sample = sample_split[1] + '-' + sample_split[2]
 
@@ -461,8 +481,8 @@ def bcftools_isec(file_prefix, decomposed_zipped, bed_prefix, bed_dict, bam):
     try:
         os.mkdir(results)
     except OSError as e:
-        print results
-        print e.errno
+        print(results)
+        print(e.errno)
         if e.errno != 17:
             exit(1)
 
@@ -475,70 +495,103 @@ def bcftools_isec(file_prefix, decomposed_zipped, bed_prefix, bed_dict, bam):
 
     for f in bed_files:
         abv = bed_dict[f]['abv']
-        print abv
+        print(abv)
         folder = results + '/' + abv
         try:
             os.mkdir(folder)
         except OSError as e:
             if e.errno != 17:
-                print folder
-                print e.errno
+                print(folder)
+                print(e.errno)
                 exit(1)
 
-        command = '/results/Pipeline/program/bcftools-1.3.1/bcftools isec -R ' + f + ' -p ' + folder + \
-                  ' /results/Analysis/HiSeq_validation/giab/giab-NA12878/truth_small_variants.decomposed.vcf.gz ' + \
-                  decomposed_zipped
-        try:
-            subprocess.check_call(command, shell=True)
-        except subprocess.CalledProcessError as e:
-            print 'Error executing command: ' + str(e.returncode)
-            exit(1)
+        if os.path.getsize(f) > 0:
 
-        print 'Checking for false calls.'
-        false_negs_ann = annotate_false_negs(folder, coverage_file)
-        false_pos_ann = annotate_false_pos(folder, coverage_file, sample)
-        print 'Checking genotype for shared calls.'
-        genotypes = check_genotype(folder, sample, coverage_file)
+            command = '/results/Pipeline/program/bcftools-1.3.1/bcftools isec -R ' + f + ' -p ' + folder + \
+                      ' /results/Analysis/HiSeq_validation/giab/giab-NA12878/truth_small_variants.decomposed.normalised.vcf.gz ' + \
+                      decomposed_zipped
+            try:
+                subprocess.check_call(command, shell=True)
+            except subprocess.CalledProcessError as e:
+                print('Error executing command: ' + str(e.returncode))
+                exit(1)
 
-        false_negs = len(false_negs_ann)
-        false_pos = len(false_pos_ann)
-        num_matching = genotypes['matching']
-        num_mismatch = len(genotypes['mismatching'])
-        true_positives = num_matching + num_mismatch
+            print('Checking for false calls.')
+            false_negs_ann = annotate_false_negs(folder, coverage_file)
+            false_pos_ann = annotate_false_pos(folder, coverage_file, sample)
+            print('Checking genotype for shared calls.')
+            genotypes = check_genotype(folder, sample, coverage_file)
 
-        total_bases = int(bed_dict[f]['length'])
-        true_negatives = total_bases - (false_negs + false_pos + num_mismatch + num_matching)
+            false_negs = len(false_negs_ann)
+            false_pos = len(false_pos_ann)
+            num_matching = genotypes['matching']
+            num_mismatch = len(genotypes['mismatching'])
+            true_positives = num_matching + num_mismatch
 
-        if true_negatives == 0:
-            print 'ERROR: Coverage file empty'
-            exit(1)
+            total_bases = int(bed_dict[f]['length'])
+            true_negatives = total_bases - (false_negs + false_pos + num_mismatch + num_matching)
 
-        try:
-            sensitivity = (num_matching + num_mismatch) / float((true_positives + false_negs)) * 100
-        except ZeroDivisionError:
-            sensitivity = 0.0
+            if true_negatives == 0:
+                print('ERROR: Coverage file empty')
+                exit(1)
 
-        total_pos = true_positives + false_pos
-        actual_pos = true_positives + false_negs
-        total_negs = true_negatives + false_negs
-        actual_negs = true_negatives + false_pos
+            try:
+                sensitivity = (num_matching + num_mismatch) / float((true_positives + false_negs)) * 100
+            except ZeroDivisionError:
+                sensitivity = 0.0
 
-        if total_pos == 0 or actual_pos == 0 or total_negs == 0 or actual_negs == 0:
-            denominator = 1
+            total_pos = true_positives + false_pos
+            actual_pos = true_positives + false_negs
+            total_negs = true_negatives + false_negs
+            actual_negs = true_negatives + false_pos
+
+            if total_pos == 0 or actual_pos == 0 or total_negs == 0 or actual_negs == 0:
+                denominator = 1
+            else:
+                denominator = total_pos * total_negs * actual_pos * actual_negs
+
+            mcc = (true_positives * true_negatives - false_pos * false_negs) / \
+                  sqrt(denominator)
+
+            remainder_length = remainder_size(f)
+            percent_covered = float(total_bases) / (total_bases + remainder_length) * 100
+
+            out = {'false_negative': false_negs_ann, 'false_positive': false_pos_ann,
+                   'mismatching_genotype': genotypes['mismatching'], 'matching_variants': genotypes['matching'],
+                   'num_true_negatives': true_negatives, 'sensitivity': sensitivity, 'MCC': mcc,
+                   'small_panel_remainder_length': remainder_length, 'percent_small_panel_covered': percent_covered}
         else:
-            denominator = total_pos * total_negs * actual_pos * actual_negs
+            total_bases = int(bed_dict[f]['length'])
+            print(total_bases)
 
-        mcc = (true_positives * true_negatives - false_pos * false_negs) / \
-              sqrt(denominator)
+            original_bed = f.replace('/GIAB', '').replace('_truth_regions_1based', '')
+            print(original_bed)
 
-        remainder_length = remainder_size(bed_prefix)
-        percent_covered = float(total_bases) / (total_bases + remainder_length) * 100
+            f = open(original_bed, 'r')
+            regions = [line.strip('\n') for line in f.readlines()]
+            f.close()
 
-        out = {'false_negative': false_negs_ann, 'false_positive': false_pos_ann,
-               'mismatching_genotype': genotypes['mismatching'], 'matching_variants': genotypes['matching'],
-               'num_true_negatives': true_negatives, 'sensitivity': sensitivity, 'MCC': mcc,
-               'broad_panel_remainder_length': remainder_length, 'percent_broad_panel_covered': percent_covered}
+            remainder_length = 0
 
+            for region in regions:
+                if region.startswith('#'):
+                    pass
+                else:
+                    fields = region.split('\t')
+                    start = int(fields[1])
+                    end = int(fields[2])
+
+                    length = end - start
+                    remainder_length += length
+
+            print(remainder_length)
+            percent_covered = float(total_bases) / (total_bases + remainder_length) * 100
+            print(percent_covered)
+
+            out = {'false_negative': {}, 'false_positive': {},
+                   'mismatching_genotype': {}, 'matching_variants': 0,
+                   'num_true_negatives': 0, 'sensitivity': 0, 'MCC': 0,
+                   'small_panel_remainder_length': remainder_length, 'percent_small_panel_covered': percent_covered}
         all_results[abv] = out
 
     return all_results
@@ -547,7 +600,7 @@ def bcftools_isec(file_prefix, decomposed_zipped, bed_prefix, bed_dict, bam):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-o', help='Location of output', required=True)
-    parser.add_argument('-p', help='Prefix given to all results files (i.e. woklist-patient)', required=True)
+    parser.add_argument('-p', help='Prefix given to all results files (i.e. worklist-patient)', required=True)
     parser.add_argument('-b', help='Prefix associated with panel BED files (i.e. NGD_)', required=True)
     parser.add_argument('-bam', help='BAM file for run', required=True)
     parser.add_argument('-v', help='VCF to be compared', required=True)
@@ -563,6 +616,7 @@ def main():
     bam = args.bam
 
     command = 'export PATH=${PATH}:/results/Pipeline/program/bedtools-2.17.0/bin'
+    print(command)
     try:
         subprocess.check_call(command, shell=True)
     except subprocess.CalledProcessError as e:

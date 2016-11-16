@@ -7,13 +7,29 @@ from pysam import VariantFile
 from math import sqrt
 import json
 
+"""
+.. module:: giab_comparison
+   :platform: Unix
+   :synopsis: Comparison of sequencing results to the reference calls for NA12878 (the flagship genome for the Genome
+   in a Bottle Consortium).
+
+.. moduleauthor:: Natalie Groves
+
+
+"""
+
 def generate_whole_bed(truth_regions, bedtool_list, bed_prefix):
     """
     Generate broad BED file for the regions that overlap with the truth set
+
     :param truth_regions: GIAB truth regions
-    :param bedtool_list: list of BED files in the panel (as BEDTools)
+    :type truth_regions: BedTool
+    :param bedtool_list: List of BED files in the panel (as BEDTools)
+    :type bedtool_list: List of BedTool objects
     :param bed_prefix: Prefix used for all BED files in the panel
+    :type bed_prefix: String
     :return: File path to the final BED file
+    :rtype: String
     """
     whole_region = truth_regions.intersect(bedtool_list)
     whole_region_sorted = whole_region.sort()
@@ -25,10 +41,15 @@ def generate_whole_bed(truth_regions, bedtool_list, bed_prefix):
 def generate_remainder(whole_bed, bed_prefix, bed_list):
     """
     Calculate the remaining regions that are not included in the truth set
-    :param whole_bed: path to the truth regions for the whole panel
-    :param bed_prefix: prefix used for all the bed files
-    :param bed_list: list of all the bed files for that panel
+
+    :param whole_bed: Path to the truth regions for the whole panel
+    :type whole_bed: String
+    :param bed_prefix: Prefix used for all the bed files
+    :type bed_prefix: String
+    :param bed_list: List of all the bed files for that panel
+    :type bed_list: List of String
     :return: BEDTool containing any regions that are completely missing from the truth regions
+    :rtype: BedTool
     """
 
     whole_truth = BedTool(whole_bed)
@@ -57,9 +78,13 @@ def generate_remainder(whole_bed, bed_prefix, bed_list):
 def generate_bed_intersects(bed_prefix, directory):
     """
     Creates the intersected BED file for the broad panel and each sub panel associated with the given abbreviation
+
     :param bed_prefix: The prefix given to each of the BED files within the panel
-    :param directory: location of pipeline output
-    :return: dictionary containing the abbreviations for each of the one-based bed files
+    :type bed_prefix: String
+    :param directory: Location of pipeline output
+    :type directory: String
+    :return: Dictionary containing the abbreviations for each of the one-based bed files
+    :rtype: Dictionary
     """
     print('Getting BED files.')
     path = '/results/Analysis/MiSeq/MasterBED/' + bed_prefix + "*"
@@ -128,9 +153,12 @@ def generate_bed_intersects(bed_prefix, directory):
 
 def prepare_vcf(vcf):
     """
-    vcf must be decomposed, normalised and zipped and indexed before it can be used with bcftools
+    Vcf must be decomposed, normalised and zipped and indexed before it can be used with bcftools
+
     :param vcf: The file path to the original vcf
+    :type vcf: String
     :return: File path to the decomposed and zipped vcf
+    :rtype: String
     """
     print('Preparing vcf.')
     decomposed = vcf.replace('.vcf', '.decomposed.vcf')
@@ -171,13 +199,20 @@ def prepare_vcf(vcf):
 
 def get_coverage(bed_prefix, directory, file_prefix, bam):
     """
-    Coverage at all positions is calculated. This is then used for coverage analysis and to determine read depth at any
-    false negative sites
-    :param bed_prefix: all regions in the bed files submitted are in a file generated during intersections
-    :param directory: location of patient results
-    :param file_prefix: prefix used for all files in pipeline i.e. worklist-patient
-    :param bam: path to BAM file to be used in coverage calculation
-    :return out: filename for coverage stats
+    Coverage at all positions is calculated.
+
+    This is then used for coverage analysis and to determine read depth at any false negative sites
+
+    :param bed_prefix: All regions in the bed files submitted are in a file generated during intersections
+    :type bed_prefix: String
+    :param directory: Location of patient results
+    :type directory: String
+    :param file_prefix: Prefix used for all files in pipeline i.e. worklist-patient
+    :type file_prefix: String
+    :param bam: Path to BAM file to be used in coverage calculation
+    :type bam: String
+    :return: Filename for coverage stats
+    :rtype: String
     """
     print('Generating coverage stats.')
     whole_bed = '/results/Analysis/MiSeq/MasterBED/GIAB/' + bed_prefix + '.whole.bed'
@@ -231,11 +266,16 @@ def get_coverage(bed_prefix, directory, file_prefix, bam):
 
 def annotate_false_negs(folder, coverage_file):
     """
-    Get information for any false negative results - returns basic variant info plus quality, genotype, coverage
-    (total, ref base and alt base if appropriate)
+    Get information for any false negative results.
+
+    Returns basic variant info plus quality, genotype, coverage (total, ref base and alt base if appropriate)
+
     :param folder: Folder containing output from bcftools isec
+    :type folder: String
     :param coverage_file: File containing per base coverage for the truth_regions panel
-    :return: array of variant dictionaries containing information on false negatives
+    :type coverage_file: String
+    :return: List of variant dictionaries containing information on false negatives
+    :rtype: List
     """
     false_negs = VariantFile(folder + '/0000.vcf')
     num_neg = len(list(false_negs.fetch()))
@@ -284,12 +324,18 @@ def annotate_false_negs(folder, coverage_file):
 
 def annotate_false_pos(folder, coverage_file, sample):
     """
-    Get information for any false positive results - returns basic variant info plus quality, genotype, coverage
-    (total, ref base and alt base if appropriate)
+    Get information for any false positive results
+
+    Returns basic variant info plus quality, genotype, coverage (total, ref base and alt base if appropriate)
+
     :param folder: Folder containing output from bcftools isec
+    :type folder: String
     :param coverage_file: File containing per base coverage for the truth_regions panel
-    :param sample: container ID used in vcf file
-    :return: array of variant dictionaries containing information on false negatives
+    :type coverage_file: String
+    :param sample: Container ID used in vcf file
+    :type sample: String
+    :return: List of variant dictionaries containing information on false negatives
+    :rtype: List
     """
     false_pos = VariantFile(folder + '/0001.vcf')
     num_pos = len(list(false_pos.fetch()))
@@ -345,10 +391,20 @@ def annotate_false_pos(folder, coverage_file, sample):
 def check_genotype(folder, sample, coverage_file):
     """
     Compares the genotype for all shared variants
-    :param folder: location of results from the NGS analysis pipeline
-    :param sample:  sample number (used in vcf file)
-    :param coverage_file: file containing coverage information for each position in the panel
-    :return: dictionary of number of matching variants and detailed information for any with mismatching genotypes
+
+    The number of matching variants are counted and those that do not match are annotated with basic variant info plus
+    quality, genotype, coverage (total, ref base and alt base if appropriate)
+
+    :param folder: Location of results from the NGS analysis pipeline
+    :type folder: String
+    :param sample: Sample number (used in vcf file)
+    :type sample: String
+    :param coverage_file: File containing coverage information for each position in the panel
+    :type coverage_file: String
+    :return: Number of matching variants
+    :rtype: Int
+    :return: List of variant dictionaries with detailed information for mismatching genotypes
+    :rtype: List
     """
     shared_giab = VariantFile(folder + '/0002.vcf')
     shared_patient = VariantFile(folder + '/0003.vcf')
@@ -418,15 +474,21 @@ def check_genotype(folder, sample, coverage_file):
                            'coverage': {'total': 'indel: no coverage could be obtained', 'ref': 'N/A', 'alt': 'N/A'}}
             variants.append(variant)
     print(str(matching) + ' matching variants')
-    results = {'matching':matching, 'mismatching':variants}
-    print(results)
-    return results
+
+    return matching, variants
 
 def remainder_size(bed_file):
     """
-    Calculate the number of bases in the broad panel not included in the truth regions
-    :param bed_file: file path to the specific panel bed file
-    :return:total length of regions in bed file
+    Calculate the number of bases in the small panel not included in the truth regions.
+
+    The amount of the panel that overlaps with the truth regions is calculated. This gives an idea of how well the
+    panel is represented in the reference sample and whether it is an accurate reflection of the accuracy of the
+    process.
+
+    :param bed_file: File path to the specific panel bed file
+    :type bed_file: String
+    :return: Total length of regions in remainder BED file
+    :rtype: Int
     """
     print('Calculating remainder')
     print(bed_file)
@@ -462,15 +524,24 @@ def remainder_size(bed_file):
 def bcftools_isec(file_prefix, decomposed_zipped, bed_prefix, bed_dict, bam):
     """
     Intersect the two vcfs and limit to the truth regions and panel BED file.
+
     The method counts the number of false positives and false negatives and checks the genotype of all of the matching
     variants.
+
     Any false negatives are investigated in terms of depth
+
     :param file_prefix: Prefix given to all files during the NGS pipeline (i.e. worklist-patient)
+    :type file_prefix: String
     :param decomposed_zipped: File path for the decomposed and zipped vcf
+    :type decomposed_zipped: String
     :param bed_prefix: Prefix for the BED files in the panel
+    :type bed_prefix: String
     :param bed_dict: Dictionary containing the abbreviations for each of the BED files - to be used as folder names
+    :type bed_dict: Dictionary
     :param bam: Path to BAM file to be used in coverage calculation
+    :type bam: String
     :return: Analysis of variant comparison
+    :rtype: Dictionary
     """
     print('Comparing vcfs.')
     sample_split = file_prefix.split('-')
@@ -520,12 +591,11 @@ def bcftools_isec(file_prefix, decomposed_zipped, bed_prefix, bed_dict, bam):
             false_negs_ann = annotate_false_negs(folder, coverage_file)
             false_pos_ann = annotate_false_pos(folder, coverage_file, sample)
             print('Checking genotype for shared calls.')
-            genotypes = check_genotype(folder, sample, coverage_file)
+            num_matching, genotypes = check_genotype(folder, sample, coverage_file)
 
             false_negs = len(false_negs_ann)
             false_pos = len(false_pos_ann)
-            num_matching = genotypes['matching']
-            num_mismatch = len(genotypes['mismatching'])
+            num_mismatch = len(genotypes)
             true_positives = num_matching + num_mismatch
 
             total_bases = int(bed_dict[f]['length'])
@@ -557,7 +627,7 @@ def bcftools_isec(file_prefix, decomposed_zipped, bed_prefix, bed_dict, bam):
             percent_covered = float(total_bases) / (total_bases + remainder_length) * 100
 
             out = {'false_negative': false_negs_ann, 'false_positive': false_pos_ann,
-                   'mismatching_genotype': genotypes['mismatching'], 'matching_variants': genotypes['matching'],
+                   'mismatching_genotype': genotypes, 'matching_variants': num_matching,
                    'num_true_negatives': true_negatives, 'sensitivity': sensitivity, 'MCC': mcc,
                    'small_panel_remainder_length': remainder_length, 'percent_small_panel_covered': percent_covered}
         else:
@@ -638,5 +708,5 @@ def main():
 
 
 
-
-main()
+if __name__ == '__main__':
+    main()

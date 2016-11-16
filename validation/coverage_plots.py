@@ -8,12 +8,37 @@ import collections
 import math
 from pybedtools import BedTool
 
+"""
+.. module:: coverage_plots
+   :platform: Unix
+   :synopsis: This script creates graphs showing a breakdown of coverage across the validation patients (-d) for the
+    regions in the BED files listed (-b).
+
+    Two sets of graphs are generated: proportion of regions covered at pre-defined depths and a breakdown of each exon
+    in each gene to help highlight any areas that may cause problems when the panel goes into service.
+    The graphs are saved in the specified folder (-o) and named either by the panel or gene.
+
+.. moduleauthor:: Natalie Groves
+
+
+"""
+
 def generate_gene_dict(beds, output_folder):
     """
-    Generate a combined BED file and fill to get the genes
-    :param beds: a list of all the BED files to be merged
+    Generate a Dictionary for the genes and coordinates for the panel.
+
+    Each of the BED files specified in the arguments are combined and a helper script from the diagnostic pipeline is
+    used to file the regions and determine the genes that are included in the panel. These regions form the basis of
+    the dictionary that will subsequently be filled with the coverage coordinates and generate the gene graphs.
+
+    The start and end coordinates used in the dictionary are expanded 1Kb either side of the start and end of the
+    regions in the gene.
+
+    :param beds: File paths to all the BED files to be merged
+    :type beds: List
     :param output_folder: folder to save any output files
-    :return: file path to a BED file for the coordinates of each gene (as produced in the pipeline
+    :return: Dictionary containing all genes and the start and end coordinates
+    :rtype: Dictionary
     """
 
     if output_folder.endswith('/'):
@@ -37,9 +62,6 @@ def generate_gene_dict(beds, output_folder):
                 all_lines.append(line)
 
     raw_regions = '\n'.join(all_lines)
-    f = open ('/home/bioinfo/Natalie/Validation/refactor_test/raw_regions.bed', 'w')
-    f.write(raw_regions)
-    f.close()
 
     whole = BedTool(raw_regions, from_string=True)
     whole_sorted =  whole.sort()
@@ -82,9 +104,15 @@ def generate_gene_dict(beds, output_folder):
 def generate_bed_dict(beds):
     """
     Generate a dictionary of bed files using their abbreviation as the key.
-    The dictionary include the regions within the BED file and the coverage values will be added to this subsequently.
-    :param beds: list of bed files
-    :return: dictionary of BED files with the abbreviation as the key
+
+    The dictionary includes the coordinates and name given to each of the regions within the BED file and the coverage
+    values will be added to this subsequently. The completed dictionary will then be used to generate the proportional
+    coverage graphs for each sub panel specified.
+
+    :param beds: List of bed files
+    :type beds: List
+    :return: Dictionary of BED files with the abbreviation as the key
+    :rtype: Dictionary
     """
     bed_dict = {}
     for bed in beds:
@@ -125,10 +153,23 @@ def generate_bed_dict(beds):
 
 def get_coverage(coverage_input, bed_dict):
     """
-    Add the coverage values for each region to the BED dictionary
-    :param coverage_input: list of files containing the coverage at each position in the broad panel
-    :param bed_dict: dictionary of BED files and regions for generation of coverage graphs
-    :return: bed_dict containing the coverage for each patient at each position
+    Add the coverage values for each region to the BED dictionary.
+
+    The coverage files required for this method are generated using the depth base method from the sambamba library.
+    This calculates the coverage at each position that meets the minimum criteria specified (coverage/quality/etc.).
+
+    The coverage values are added to the BED dictionary for each region in each BED file (i.e. coverage values can
+    appear more than once if the region is contained within multiple BED files).
+    The coverage values are also returned for use in the gene graphs
+
+    :param coverage_input: List of files containing the coverage at each position in the broad panel
+    :type coverage_input: List
+    :param bed_dict: Dictionary of BED files and regions for generation of coverage graphs
+    :type bed_dict: Dictionary
+    :return: Updated bed_dict containing the coverage for each patient at each position
+    :rtype: Dictionary
+    :return: Dictionary of coverage values for each position
+    :rtype: Dictionary
     """
 
     #generate coverage dictionary (used to populate BED dict)
@@ -213,12 +254,20 @@ def get_coverage(coverage_input, bed_dict):
 
 def plot_region_coverage(panel_name, panel_dict, output_folder):
     """
-    Generate a plot for each panel showing the proportion of positions that have an arverage coverage in each of the
-    pre-defined bins (less than 18X, between 18 and 30X, between 30 and 100X and greater than 100X)
-    :param panel_name: abbreviation for the panel used in the pipeline
-    :param panel_dict: dictionary for the specific sub-panel
-    :param output_folder: location for graphs to be saved
-    :return:
+    Generate a plot for each panel.
+
+    The plots generated show the proportion of positions that have an average coverage in each of the
+    pre-defined bins (less than 18X, between 18 and 30X, between 30 and 100X and greater than 100X).
+
+    The figures are split into sub-plots if there are more than 70 regions in the panel. This makes the regions more
+    readable in the final figure.
+
+    :param panel_name: Abbreviation for the panel used in the pipeline
+    :type panel_name: String
+    :param panel_dict: Dictionary for the specific sub-panel (sub-section of bed_dict)
+    :type panel_dict: Dictionary
+    :param output_folder: Location for graphs to be saved
+    :return: None
     """
 
     if output_folder.endswith('/'):
@@ -294,7 +343,7 @@ def plot_region_coverage(panel_name, panel_dict, output_folder):
             ax.bar(spacing, c, width, bottom=[i + j for i, j in zip(a, b)],
                    color='g', label='Between 30X and 100X')
             ax.bar(spacing, d, width,
-                   bottom=[i + j + k for i, j, k in zip(a, b, c)], color='m',
+                   bottom=[i + j + k for i, j, k in zip(a, b, c)], color='0.75',
                    label='Over 100X')
 
             ax.set_xticks(tick_pos)
@@ -317,7 +366,7 @@ def plot_region_coverage(panel_name, panel_dict, output_folder):
         ax1.bar(spacing, between_30_100, width, bottom=[i + j for i, j in zip(less_18, between_18_30)],
                 color='g', label='Between 30X and 100X')
         ax1.bar(spacing, more_100, width,
-                bottom=[i + j + k for i, j, k in zip(less_18, between_18_30, between_30_100)], color='m',
+                bottom=[i + j + k for i, j, k in zip(less_18, between_18_30, between_30_100)], color='0.75',
                 label='Over 100X')
         print(tick_pos)
         ax1.set_xlim([min(tick_pos) - width, max(tick_pos) + width])
@@ -333,13 +382,23 @@ def plot_region_coverage(panel_name, panel_dict, output_folder):
 
 def generate_gene_plots(gene_dict, coverage, output_folder):
     """
-    Generate a figure for each gene showing the coverage stats for each position in each exon.
-    The figures are split into a plot for each exon and show the average coverage at each position (red line), the
-    maximum coverage at each position (green line) and the minimum coverage at each position (blue line)
-    :param gene_dict: dictionary for the coverage values for each position in each gene
-    :param coverage: dictionary containing the coverage information for the validation patients
-    :param output_folder: location for graphs to be saved
-    :return:
+    Generate a coverage figure for each gene separated by exon.
+
+    A figure is produced for each gene containing a plot per exon to show the average coverage at each position (
+    red line), the maximum coverage at each position (green line) and the minimum coverage at each position (blue line)
+    within the region.
+
+    All of the plots within the figure share the same x axis to allow the graphs to be comparable by eye. However, this
+    does not apply across genes. The subplots are no more than five to a row to improve readability. Some of the larger
+    exons can appear slightly squashed but the general trend can still be observed.
+
+    :param gene_dict: Dictionary of the start and end position of each gene
+    :type gene_dict: Dictionary
+    :param coverage: Dictionary containing the coverage information for the validation patients
+    :type coverage: Dictionary
+    :param output_folder: Location for graphs to be saved
+    :type output_folder: String
+    :return: None
     """
 
     chroms = ['chr1', 'chr2', 'chr3', 'chr4', 'chr5', 'chr6', 'chr7', 'chr8', 'chr9', 'chr10', 'chr11', 'chr12',
@@ -429,7 +488,7 @@ def generate_gene_plots(gene_dict, coverage, output_folder):
                                   transform=subplots.transAxes)
                 else:
                     reverse = False
-                    if int(plot_list[0]['title'].replace('exon', '')) > int(plot_list[1]['title'].replace('exon', '')):
+                    if int(plot_list[0]['title'].replace('Exon', '')) > int(plot_list[1]['title'].replace('Exon', '')):
                         reverse = True
                     i = 0
                     for ax in subplots.flatten():
@@ -455,12 +514,14 @@ def generate_gene_plots(gene_dict, coverage, output_folder):
 
 def main():
     """
-    This script creates graphs showing a breakdown of coverage across the list of patients provided in the arguments
-    (-d) for the BED files listed (-b).
+    This script creates graphs showing a breakdown of coverage across the validation patients (-d) for the regions in
+    the BED files listed (-b).
+
     Two sets of graphs are generated: proportion of regions covered at pre-defined depths and a breakdown of each exon
     in each gene to help highlight any areas that may cause problems when the panel goes into service.
     The graphs are saved in the specified folder (-o) and named either by the panel or gene.
-    :return:
+
+    :return: None
     """
     parser = argparse.ArgumentParser()
     parser.add_argument('-d', help='Comma separated list of coverage files (full path)', required=True)

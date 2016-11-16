@@ -264,7 +264,7 @@ def get_coverage(bed_prefix, directory, file_prefix, bam):
     print('fix complete.')
     return out
 
-def annotate_false_negs(folder, coverage_file):
+def annotate_false_negs(folder, ref_sample, coverage_file):
     """
     Get information for any false negative results.
 
@@ -272,6 +272,8 @@ def annotate_false_negs(folder, coverage_file):
 
     :param folder: Folder containing output from bcftools isec
     :type folder: String
+    :param ref_sample: Sample number for reference vcf
+    :type ref_sample: String
     :param coverage_file: File containing per base coverage for the truth_regions panel
     :type coverage_file: String
     :return: List of variant dictionaries containing information on false negatives
@@ -291,13 +293,14 @@ def annotate_false_negs(folder, coverage_file):
             ref = rec.alleles[0]
             alt = rec.alleles[1]
             qual = rec.qual
-            genotype = rec.samples['INTEGRATION']['GT']
+            genotype = rec.samples[ref_sample]['GT']
             if len(rec.alleles[0]) == 1 and len(rec.alleles[1]) == 1:
                 search = '\'' + rec.contig + '\s' + str(rec.pos - 1) + '\''
                 command = 'grep ' + search + ' ' + coverage_file
                 try:
                     line = subprocess.check_output(command, shell=True)
                 except subprocess.CalledProcessError as e:
+                    print(command)
                     print('Error executing command: ' + str(e.returncode))
                     exit(1)
 
@@ -305,6 +308,7 @@ def annotate_false_negs(folder, coverage_file):
                     variant = {'chrom':chrom, 'pos':pos, 'ref':ref, 'alt':alt, 'QUAL':qual,
                                'GT':genotype, 'coverage':{'total':'no coverage information', 'ref':'N/A', 'alt':'N/A'}}
                 else:
+                    line.strip('\n')
                     bases = {'A': 3, 'C': 4, 'G': 5, 'T': 6}
                     fields = line.split()
                     cov = fields[2]
@@ -388,7 +392,7 @@ def annotate_false_pos(folder, coverage_file, sample):
 
     return variants
 
-def check_genotype(folder, sample, coverage_file):
+def check_genotype(folder, sample, ref_sample, coverage_file):
     """
     Compares the genotype for all shared variants
 
@@ -399,6 +403,8 @@ def check_genotype(folder, sample, coverage_file):
     :type folder: String
     :param sample: Sample number (used in vcf file)
     :type sample: String
+    :param ref_sample: Sample number for reference vcf
+    :type ref_sample: String
     :param coverage_file: File containing coverage information for each position in the panel
     :type coverage_file: String
     :return: Number of matching variants
@@ -421,7 +427,7 @@ def check_genotype(folder, sample, coverage_file):
         if pos not in vars_giab[chrom]:
             vars_giab[chrom][pos] = {}
         if alleles not in vars_giab[chrom][pos]:
-            vars_giab[chrom][pos][alleles] = rec.samples['INTEGRATION']['GT']
+            vars_giab[chrom][pos][alleles] = rec.samples[ref_sample]['GT']
 
     matching = 0
     for rec in shared_patient.fetch():
@@ -588,10 +594,10 @@ def bcftools_isec(file_prefix, decomposed_zipped, bed_prefix, bed_dict, bam):
                 exit(1)
 
             print('Checking for false calls.')
-            false_negs_ann = annotate_false_negs(folder, coverage_file)
+            false_negs_ann = annotate_false_negs(folder, 'INTEGRATION', coverage_file)
             false_pos_ann = annotate_false_pos(folder, coverage_file, sample)
             print('Checking genotype for shared calls.')
-            num_matching, genotypes = check_genotype(folder, sample, coverage_file)
+            num_matching, genotypes = check_genotype(folder, sample, 'INTEGRATION', coverage_file)
 
             false_negs = len(false_negs_ann)
             false_pos = len(false_pos_ann)
@@ -606,7 +612,7 @@ def bcftools_isec(file_prefix, decomposed_zipped, bed_prefix, bed_dict, bam):
                 exit(1)
 
             try:
-                sensitivity = (num_matching + num_mismatch) / float((true_positives + false_negs)) * 100
+                sensitivity = (num_matching + num_mismatch) / float((true_positives + false_pos)) * 100
             except ZeroDivisionError:
                 sensitivity = 0.0
 

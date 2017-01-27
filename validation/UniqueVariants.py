@@ -85,8 +85,12 @@ def generate_v_dict(variants):
     """
     v_dict = {}
     old = False
+    vcf = False
     for line in variants:
-        if line.startswith('#'):
+        if line.startswith('#CHROM'):
+            vcf = True
+            continue
+        elif line.startswith('#'):
             continue
         elif line.startswith('Variant'):
             old = True
@@ -94,6 +98,12 @@ def generate_v_dict(variants):
         elif line.startswith('chrom'):
             old = False
             continue
+        elif vcf:
+            v_fields = line.split('\t')
+            chrom = v_fields[0]
+            pos = v_fields[1]
+            ref = v_fields[3]
+            alt = v_fields[4]
         elif old:
             v_fields = line.split('\t')
             chrom = v_fields[2]

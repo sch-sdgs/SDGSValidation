@@ -6,6 +6,7 @@ from pybedtools import BedTool
 from pysam import VariantFile
 from math import sqrt
 import json
+from json2html import *
 
 """
 .. module:: giab_comparison
@@ -34,7 +35,7 @@ def generate_whole_bed(truth_regions, bedtool_list, bed_prefix):
     whole_region = truth_regions.intersect(bedtool_list)
     whole_region_sorted = whole_region.sort()
     whole_region_merged = whole_region_sorted.merge()
-    whole_bed = '/results/Analysis/MiSeq/MasterBED/GIAB/' + bed_prefix + '.whole.bed'
+    whole_bed = bed_prefix + '.whole.bed'
     whole_region_merged.moveto(whole_bed)
     return whole_bed
 
@@ -71,7 +72,7 @@ def generate_remainder(whole_bed, bed_prefix, bed_list):
     whole_merged.saveas()
 
     remainder = whole_merged.subtract(whole_truth)
-    remainder.moveto('/results/Analysis/MiSeq/MasterBED/GIAB/' + bed_prefix + '.remainder.bed')
+    remainder.moveto(bed_prefix + '.remainder.bed')
     missing_regions = whole_merged.subtract(whole_truth, A=True)
     return missing_regions
 
@@ -87,8 +88,9 @@ def generate_bed_intersects(bed_prefix, directory):
     :rtype: Dictionary
     """
     print('Getting BED files.')
-    path = '/results/Analysis/MiSeq/MasterBED/' + bed_prefix + "*"
+    path = bed_prefix + "*"
     bed_files = glob.glob(path)
+    print(bed_files)
 
     if len(bed_files) == 0:
         print('No BED files found with that prefix')
@@ -101,9 +103,9 @@ def generate_bed_intersects(bed_prefix, directory):
     print('Generating truth regions.')
     for f in bed_files:
         name = os.path.basename(f)
-        no_header = '/results/Analysis/MiSeq/MasterBED/GIAB/' + name.replace('.bed', '_noheader.bed')
-        one_based = '/results/Analysis/MiSeq/MasterBED/GIAB/' + name.replace('.bed', '_truth_regions_1based.bed')
-        truth_regions_panel = '/results/Analysis/MiSeq/MasterBED/GIAB/' + name.replace('.bed', '_truth_regions.bed')
+        no_header = '/results/Analysis/projects/GIAB/reference_files/' + name.replace('.bed', '_noheader.bed')
+        one_based = '/results/Analysis/projects/GIAB/reference_files/' + name.replace('.bed', '_truth_regions_1based.bed')
+        truth_regions_panel = '/results/Analysis/projects/GIAB/reference_files/' + name.replace('.bed', '_truth_regions.bed')
 
         #Create BED file without header for intersect
         command = "grep -i -v start " + f + " > " + no_header
@@ -197,28 +199,32 @@ def prepare_vcf(vcf):
     print('vcf decomposed and zipped successfully.')
     return normalised_zipped
 
-def get_coverage(bed_prefix, directory, file_prefix, bam):
+def get_coverage(whole_bed, directory, sample, bam):
     """
     Coverage at all positions is calculated.
 
     This is then used for coverage analysis and to determine read depth at any false negative sites
 
-    :param bed_prefix: All regions in the bed files submitted are in a file generated during intersections
-    :type bed_prefix: String
+    :param whole_bed: BED file generated from all BED files in panel
+    :type whole_bed: String
     :param directory: Location of patient results
     :type directory: String
-    :param file_prefix: Prefix used for all files in pipeline i.e. worklist-patient
-    :type file_prefix: String
+    :param sample: sample ID
+    :type sample: String
     :param bam: Path to BAM file to be used in coverage calculation
     :type bam: String
     :return: Filename for coverage stats
     :rtype: String
     """
     print('Generating coverage stats.')
-    whole_bed = '/results/Analysis/MiSeq/MasterBED/GIAB/' + bed_prefix + '.whole.bed'
-    out = directory + '/giab_results/whole_bed_coverage.txt'
+    if directory.endswith('.txt'):
+        out = directory
+        directory = os.path.dirname(directory)
+    else:
+        out = directory + '/whole_bed_coverage.txt'
     command = '/results/Pipeline/program/sambamba/build/sambamba depth base --min-coverage=0 -q29 -m -L ' + whole_bed + \
               ' ' + bam + ' > ' + out + '.tmp'
+    print(command)
     try:
         subprocess.check_call(command, shell=True)
     except subprocess.CalledProcessError as e:
@@ -242,11 +248,9 @@ def get_coverage(bed_prefix, directory, file_prefix, bam):
     whole_bedtool = BedTool(whole_bed)
     print('Intersecting')
     missing_regions = whole_bedtool.intersect(coverage_bed, v=True)
-    missing_file = directory + '/giab_results/regions_missing'
+    missing_file = directory + 'regions_missing'
     missing_regions.moveto(missing_file)
     print('Generating file')
-    sample_split = file_prefix.split('-')
-    sample = sample_split[1] + '-' + sample_split[2]
     command = '''while read i; do start=`echo "$i"|cut -f2`; end=`echo "$i"|cut -f3`; chr=`echo "$i"|cut -f1`; end_true=`echo "${end} - 1" | bc`; for j in $(seq $start $end_true); do new_end=`echo -e "${j} + 1" | bc`; echo -e "$chr\\t${j}\\t0\\t0\\t0\\t0\\t0\\t0\\t0\\t''' + sample + '''";done;done < ''' + missing_file + '> ' + directory + '/to_add'
     print(command)
     try:
@@ -283,7 +287,7 @@ def annotate_false_negs(folder, ref_sample, coverage_file):
     num_neg = len(list(false_negs.fetch()))
     print(num_neg)
 
-    variants = []
+    variants = {'indels':[],'no_coverage':[],'evidence_of_alt':[],'false_neg':[]}
 
     if num_neg > 0:
         print('false negatives')
@@ -307,6 +311,9 @@ def annotate_false_negs(folder, ref_sample, coverage_file):
                 if line == '':
                     variant = {'chrom':chrom, 'pos':pos, 'ref':ref, 'alt':alt, 'QUAL':qual,
                                'GT':genotype, 'coverage':{'total':'no coverage information', 'ref':'N/A', 'alt':'N/A'}}
+                    no_cov = variants['no_coverage']
+                    no_cov.append(variant)
+                    variants['no_coverage'] = no_cov
                 else:
                     line.strip('\n')
                     bases = {'A': 3, 'C': 4, 'G': 5, 'T': 6}
@@ -316,11 +323,27 @@ def annotate_false_negs(folder, ref_sample, coverage_file):
                     alt_cov = fields[bases[rec.alleles[1]]]
                     variant = {'chrom':chrom, 'pos':pos, 'ref':ref, 'alt':alt, 'QUAL':qual,
                                'GT':genotype, 'coverage':{'total':cov, 'ref':ref_cov, 'alt':alt_cov}}
+
+                    if cov == 0:
+                        no_cov = variants['no_coverage']
+                        no_cov.append(variant)
+                        variants['no_coverage'] = no_cov
+                    elif alt_cov != 0:
+                        ev_alt = variants['evidence_of_alt']
+                        ev_alt.append(variant)
+                        variants['evidence_of_alt'] = ev_alt
+                    else:
+                        fn = variants['false_neg']
+                        fn.append(variant)
+                        variants['false_neg'] = fn
             else:
                 variant = {'chrom':chrom, 'pos':pos, 'ref':ref, 'alt':alt, 'QUAL':qual,
                             'GT':genotype, 'coverage':{'total':'indel: no coverage could be obtained', 'ref':'N/A',
                                                         'alt':'N/A'}}
-            variants.append(variant)
+                indels = variants['indels']
+                indels.append(variant)
+                variants['indels'] = indels
+
     else:
         print('no false negatives')
 
@@ -358,9 +381,16 @@ def annotate_false_pos(folder, coverage_file, sample):
             genotype = rec.samples[sample]['GT']
             if 'AD' in rec.samples[sample].keys():
                 allelic_depth = rec.samples[sample]['AD']
+            elif 'NV' in rec.samples[sample].keys():
+                allelic_depth = rec.samples[sample]['NV']
             else:
                 allelic_depth = 'N/A'
-            total_depth = rec.samples[sample]['DP']
+            if 'DP' in rec.samples[sample].keys():
+                total_depth = rec.samples[sample]['DP']
+            elif 'NR' in rec.samples[sample].keys():
+                total_depth = rec.samples[sample]['NR']
+            else:
+                total_depth = 0
             if len(rec.alleles[0]) == 1 and len(rec.alleles[1]) == 1:
                 search = '\'' + rec.contig + '\s' + str(rec.pos - 1) + '\''
                 command = 'grep ' + search + ' ' + coverage_file
@@ -438,7 +468,12 @@ def check_genotype(folder, sample, ref_sample, coverage_file):
             allelic_depth = rec.samples[sample]['AD']
         else:
             allelic_depth = 'N/A'
-        total_depth = rec.samples[sample]['DP']
+        if 'DP' in rec.samples[sample].keys():
+            total_depth = rec.samples[sample]['DP']
+        elif 'NR' in rec.samples[sample].keys():
+            total_depth = rec.samples[sample]['NR']
+        else:
+            total_depth = 0
         giab_genotype = vars_giab[chrom][pos][alleles]
         if rec.samples[sample]['GT'] == giab_genotype:
             matching += 1
@@ -498,7 +533,7 @@ def remainder_size(bed_file):
     """
     print('Calculating remainder')
     print(bed_file)
-    original_bed = bed_file.replace('/GIAB', '').replace('_truth_regions_1based', '')
+    original_bed = bed_file.replace('_truth_regions_1based', '')
     print(original_bed)
     truth_region_bed = bed_file.replace('_1based', '')
     print(truth_region_bed)
@@ -563,13 +598,15 @@ def bcftools_isec(file_prefix, decomposed_zipped, bed_prefix, bed_dict, bam):
         if e.errno != 17:
             exit(1)
 
-    path = '/results/Analysis/MiSeq/MasterBED/GIAB/' + bed_prefix + '*truth_regions_1based.bed'
+    path = bed_prefix + '*truth_regions_1based.bed'
     bed_files = glob.glob(path)
 
-    coverage_file = get_coverage(bed_prefix, directory, file_prefix, bam)
+    whole_bed = bed_prefix + '.whole.bed'
+
+    coverage_file = get_coverage(whole_bed, results, sample, bam)
 
     all_results = {}
-
+    print(bed_files)
     for f in bed_files:
         abv = bed_dict[f]['abv']
         print(abv)
@@ -599,7 +636,11 @@ def bcftools_isec(file_prefix, decomposed_zipped, bed_prefix, bed_dict, bam):
             print('Checking genotype for shared calls.')
             num_matching, genotypes = check_genotype(folder, sample, 'INTEGRATION', coverage_file)
 
-            false_negs = len(false_negs_ann)
+            false_negs_indels = len(false_negs_ann['indels'])
+            false_negs_cov = len(false_negs_ann['no_coverage'])
+            false_negs_ev_alt = len(false_negs_ann['evidence_of_alt'])
+            false_neg_oth = len(false_negs_ann['false_neg'])
+            false_negs = false_neg_oth + false_negs_cov + false_negs_cov + false_negs_ev_alt + false_negs_indels
             false_pos = len(false_pos_ann)
             num_mismatch = len(genotypes)
             true_positives = num_matching + num_mismatch
@@ -635,12 +676,18 @@ def bcftools_isec(file_prefix, decomposed_zipped, bed_prefix, bed_dict, bam):
             out = {'false_negative': false_negs_ann, 'false_positive': false_pos_ann,
                    'mismatching_genotype': genotypes, 'matching_variants': num_matching,
                    'num_true_negatives': true_negatives, 'sensitivity': sensitivity, 'MCC': mcc,
-                   'small_panel_remainder_length': remainder_length, 'percent_small_panel_covered': percent_covered}
+                   'small_panel_remainder_length': remainder_length, 'percent_small_panel_covered': percent_covered,
+                   'num_false_positive': false_pos, 'num_false_negative':{'indel':false_negs_indels,
+                                                                          'no_coverage':false_negs_cov,
+                                                                          'ev_of_alt':false_negs_ev_alt,
+                                                                          'false_neg':false_neg_oth,
+                                                                          'total':false_negs},
+                   'num_mismatching_genotype': num_mismatch}
         else:
             total_bases = int(bed_dict[f]['length'])
             print(total_bases)
 
-            original_bed = f.replace('/GIAB', '').replace('_truth_regions_1based', '')
+            original_bed = f.replace('_truth_regions_1based', '')
             print(original_bed)
 
             f = open(original_bed, 'r')
@@ -667,7 +714,9 @@ def bcftools_isec(file_prefix, decomposed_zipped, bed_prefix, bed_dict, bam):
             out = {'false_negative': {}, 'false_positive': {},
                    'mismatching_genotype': {}, 'matching_variants': 0,
                    'num_true_negatives': 0, 'sensitivity': 0, 'MCC': 0,
-                   'small_panel_remainder_length': remainder_length, 'percent_small_panel_covered': percent_covered}
+                   'small_panel_remainder_length': remainder_length, 'percent_small_panel_covered': percent_covered,
+                   'num_false_positive':0, 'num_false_negative':{'indel':0, 'no_coverage':0, 'ev_of_alt':0, 'false_neg':0, 'total':0},
+                   'num_mismatching_genotype':0}
         all_results[abv] = out
 
     return all_results
@@ -710,6 +759,11 @@ def main():
     j = json.dumps(results, indent=4)
     print >> f, j
     f.close()
+
+    f = open(directory + '/giab_summary.html', 'w')
+    f.write(json2html.convert(json=j))
+    f.close()
+
 
 
 

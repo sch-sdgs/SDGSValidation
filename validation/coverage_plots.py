@@ -7,6 +7,8 @@ import subprocess
 import collections
 import math
 from pybedtools import BedTool
+from giab_comparison import get_coverage
+import os
 
 """
 .. module:: coverage_plots
@@ -98,7 +100,7 @@ def generate_gene_dict(beds, output_folder):
             print('gene duplicate ' + line + ':' + name)
 
 
-    return gene_dict
+    return gene_dict, output_regions
 
 
 def generate_bed_dict(beds):
@@ -151,7 +153,7 @@ def generate_bed_dict(beds):
 
     return bed_dict
 
-def get_coverage(coverage_input, bed_dict):
+def get_coverage_for_dict(coverage_input, bed_dict):
     """
     Add the coverage values for each region to the BED dictionary.
 
@@ -366,7 +368,7 @@ def plot_region_coverage(panel_name, panel_dict, output_folder):
         ax1.bar(spacing, between_30_100, width, bottom=[i + j for i, j in zip(less_18, between_18_30)],
                 color='g', label='Between 30X and 100X')
         ax1.bar(spacing, more_100, width,
-                bottom=[i + j + k for i, j, k in zip(less_18, between_18_30, between_30_100)], color='0.75',
+                bottom=[i + j + k for i, j, k in zip(less_18, between_18_30, between_30_100)], color='0.6',
                 label='Over 100X')
         print(tick_pos)
         ax1.set_xlim([min(tick_pos) - width, max(tick_pos) + width])
@@ -447,7 +449,14 @@ def generate_gene_plots(gene_dict, coverage, output_folder):
                             plot_number += 1
                             new_plot = False
                         region_name = coverage[chrom][i]['name']
-                        exon = region_name.split('-')[1]
+                        if '-' in region_name:
+                            exon_split = region_name.split('-')
+                        else:
+                            exon_split = region_name.split('_')
+                        exon = ''
+                        for s in exon_split:
+                            if 'exon' in s or 'EXON' in s:
+                                exon = s
                         intron_number += 1
                         cov_mean = numpy.mean(cov)
                         cov_max = max(cov)
@@ -488,7 +497,7 @@ def generate_gene_plots(gene_dict, coverage, output_folder):
                                   transform=subplots.transAxes)
                 else:
                     reverse = False
-                    if int(plot_list[0]['title'].replace('Exon', '')) > int(plot_list[1]['title'].replace('Exon', '')):
+                    if int(plot_list[0]['title'].replace('Exon', '').replace('exon', '').replace('EXON', '')) > int(plot_list[1]['title'].replace('Exon', '').replace('exon', '').replace('EXON', '')):
                         reverse = True
                     i = 0
                     for ax in subplots.flatten():
@@ -512,6 +521,24 @@ def generate_gene_plots(gene_dict, coverage, output_folder):
         except KeyError:
             pass
 
+def generate_coverage(whole_bed, bam_list, output_folder):
+    """
+
+    :param whole_bed:
+    :param bam_list:
+    :param output_folder:
+    :return:
+    """
+    coverage_list = []
+    for bam in bam_list:
+        sample_split = os.path.basename(bam).split('_')[0].split('-')
+        sample = sample_split[1] + '-' + sample_split[2]
+        print(sample)
+        outfile = output_folder + sample + '_coverage.txt'
+        get_coverage(whole_bed, outfile, sample, bam)
+        coverage_list.append(outfile.replace('.txt','.bed.tmp'))
+    return coverage_list
+
 def main():
     """
     This script creates graphs showing a breakdown of coverage across the validation patients (-d) for the regions in
@@ -524,15 +551,18 @@ def main():
     :return: None
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument('-d', help='Comma separated list of coverage files (full path)', required=True)
+    parser.add_argument('--bams', help='Comma separated list of bam files (full path)', required=True)
     parser.add_argument('-b', help='Comma separated list of BED files (file names only)', required=True)
     parser.add_argument('-o', help='Directory for graph output', required=True)
 
     args = parser.parse_args()
 
-    coverage_input = args.d.split(',')
+    bam_input = args.bams.split(',')
     beds = args.b.split(',')
-    output_folder = args.o
+    if args.o.endswith('/'):
+        output_folder = args.o
+    else:
+        output_folder = args.o + '/'
 
     #add BED tools to the path so the python library can be used
     command = 'export PATH=${PATH}:/results/Pipeline/program/bedtools-2.17.0/bin'
@@ -544,9 +574,12 @@ def main():
         exit(1)
 
     #generate dictionaries
+    gene_dict, output_regions = generate_gene_dict(beds,output_folder)
+    # output_regions is merged bed file (no need for broad) to generate coverage files
+    coverage_input = generate_coverage(output_regions, bam_input, output_folder)
     bed_dict = generate_bed_dict(beds)
-    coverage, bed_dict = get_coverage(coverage_input, bed_dict)
-    gene_dict = generate_gene_dict(beds,output_folder)
+    coverage, bed_dict = get_coverage_for_dict(coverage_input, bed_dict)
+
 
     #generate graphs
     for bed in bed_dict.keys():

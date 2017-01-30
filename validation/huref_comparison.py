@@ -19,7 +19,7 @@ from json2html import *
 
 """
 
-def generate_whole_bed(truth_regions, bedtool_list, out_dir):
+def generate_whole_bed(truth_regions, bedtool_list, bed_prefix):
     """
     Generate broad BED file for the regions that overlap with the truth set
 
@@ -27,26 +27,26 @@ def generate_whole_bed(truth_regions, bedtool_list, out_dir):
     :type truth_regions: BedTool
     :param bedtool_list: List of BED files in the panel (as BEDTools)
     :type bedtool_list: List of BedTool objects
-    :param out_dir: location for whole bed file
-    :type out_dir: String
+    :param bed_prefix: Prefix used for all BED files in the panel
+    :type bed_prefix: String
     :return: File path to the final BED file
     :rtype: String
     """
     whole_region = truth_regions.intersect(bedtool_list)
     whole_region_sorted = whole_region.sort()
     whole_region_merged = whole_region_sorted.merge()
-    whole_bed = out_dir + '.whole.bed'
+    whole_bed = bed_prefix + '.whole.bed'
     whole_region_merged.moveto(whole_bed)
     return whole_bed
 
-def generate_remainder(whole_bed, out_dir, bed_list):
+def generate_remainder(whole_bed, bed_prefix, bed_list):
     """
     Calculate the remaining regions that are not included in the truth set
 
     :param whole_bed: Path to the truth regions for the whole panel
     :type whole_bed: String
-    :param out_dir: Prefix used for all the bed files
-    :type out_dir: String
+    :param bed_prefix: Prefix used for all the bed files
+    :type bed_prefix: String
     :param bed_list: List of all the bed files for that panel
     :type bed_list: List of String
     :return: BEDTool containing any regions that are completely missing from the truth regions
@@ -72,7 +72,7 @@ def generate_remainder(whole_bed, out_dir, bed_list):
     whole_merged.saveas()
 
     remainder = whole_merged.subtract(whole_truth)
-    remainder.moveto(out_dir + '.remainder.bed')
+    remainder.moveto(bed_prefix + '.remainder.bed')
     missing_regions = whole_merged.subtract(whole_truth, A=True)
     return missing_regions
 
@@ -98,14 +98,14 @@ def generate_bed_intersects(bed_prefix, directory):
 
     bed_dict = {}
     bedtool_list = []
-    truth_regions = BedTool('/results/Analysis/projects/HeredCancer/CysticValidation/HuRef/truth_regions.bed')
+    truth_regions = BedTool('/results/Analysis/MiSeq/MasterBED/GIAB/truth_regions.bed')
 
     print('Generating truth regions.')
     for f in bed_files:
         name = os.path.basename(f)
-        no_header = '/results/Analysis/projects/HeredCancer/CysticValidation/HuRef/' + name.replace('.bed', '_noheader.bed')
-        one_based = '/results/Analysis/projects/HeredCancer/CysticValidation/HuRef/' + name.replace('.bed', '_truth_regions_1based.bed')
-        truth_regions_panel = '/results/Analysis/projects/HeredCancer/CysticValidation/HuRef/' + name.replace('.bed', '_truth_regions.bed')
+        no_header = '/results/Analysis/MiSeq/MasterBED/GIAB/' + name.replace('.bed', '_noheader.bed')
+        one_based = '/results/Analysis/MiSeq/MasterBED/GIAB/' + name.replace('.bed', '_truth_regions_1based.bed')
+        truth_regions_panel = '/results/Analysis/MiSeq/MasterBED/GIAB/' + name.replace('.bed', '_truth_regions.bed')
 
         #Create BED file without header for intersect
         command = "grep -i -v start " + f + " > " + no_header
@@ -146,12 +146,12 @@ def generate_bed_intersects(bed_prefix, directory):
             exit(1)
         os.remove(no_header)
 
-    whole_bed = generate_whole_bed(truth_regions, bedtool_list, directory)
-    missing_regions = generate_remainder(whole_bed, directory, bed_files)
+    whole_bed = generate_whole_bed(truth_regions, bedtool_list, bed_prefix)
+    missing_regions = generate_remainder(whole_bed, bed_prefix, bed_files)
     missing_regions.moveto(directory + '/missing_regions.bed')
 
     print('BED files produced correctly.')
-    return bed_dict, whole_bed
+    return bed_dict
 
 def prepare_vcf(vcf):
     """
@@ -222,7 +222,6 @@ def get_coverage(whole_bed, directory, sample, bam):
         directory = os.path.dirname(directory)
     else:
         out = directory + '/whole_bed_coverage.txt'
-    print(whole_bed)
     command = '/results/Pipeline/program/sambamba/build/sambamba depth base --min-coverage=0 -q29 -m -L ' + whole_bed + \
               ' ' + bam + ' > ' + out + '.tmp'
     print(command)
@@ -243,6 +242,7 @@ def get_coverage(whole_bed, directory, sample, bam):
     except subprocess.CalledProcessError as e:
         print('Error executing command:' + str(e.returncode))
         exit(1)
+
 
     coverage_bed = BedTool(temp_bed)
     print('BED tool created')
@@ -298,7 +298,7 @@ def annotate_false_negs(folder, ref_sample, coverage_file):
             ref = rec.alleles[0]
             alt = rec.alleles[1]
             qual = rec.qual
-            genotype = rec.samples[ref_sample]['GT']
+            genotype = rec.samples['Venter.il_st']['GT']
             if len(rec.alleles[0]) == 1 and len(rec.alleles[1]) == 1:
                 search = '\'' + rec.contig + '\s' + str(rec.pos - 1) + '\''
                 command = 'grep ' + search + ' ' + coverage_file
@@ -458,7 +458,7 @@ def check_genotype(folder, sample, ref_sample, coverage_file):
         if pos not in vars_giab[chrom]:
             vars_giab[chrom][pos] = {}
         if alleles not in vars_giab[chrom][pos]:
-            vars_giab[chrom][pos][alleles] = rec.samples[ref_sample]['GT']
+            vars_giab[chrom][pos][alleles] = rec.samples['Venter.il_st']['GT']
 
     matching = 0
     for rec in shared_patient.fetch():
@@ -478,8 +478,11 @@ def check_genotype(folder, sample, ref_sample, coverage_file):
         giab_genotype = vars_giab[chrom][pos][alleles]
         if rec.samples[sample]['GT'] == giab_genotype:
             matching += 1
-        elif (rec.samples[sample]['GT'][0] is None or rec.samples[sample]['GT'][0] == 1) and rec.samples[sample]['GT'][
-            0] == giab_genotype[1] and rec.samples[sample]['GT'][1] == giab_genotype[0]:
+        elif (rec.samples[sample]['GT'][0] is None and rec.samples[sample]['GT'][1] == 1) and (rec.samples[sample]['GT'][
+            1] == giab_genotype[1] or rec.samples[sample]['GT'][1] == giab_genotype[0]):
+            matching += 1
+        elif (rec.samples[sample]['GT'][1] is None and rec.samples[sample]['GT'][0] == 1) and (rec.samples[sample]['GT'][
+            0] == giab_genotype[1] or rec.samples[sample]['GT'][0] == giab_genotype[0]):
             matching += 1
         elif rec.samples[sample]['GT'][0] == 0 and rec.samples[sample]['GT'][1] == 1 and giab_genotype[0] == 1 and giab_genotype[1] == 0:
             matching += 1
@@ -534,7 +537,7 @@ def remainder_size(bed_file):
     """
     print('Calculating remainder')
     print(bed_file)
-    original_bed = '/results/Analysis/MiSeq/MasterBED/' + os.path.basename(bed_file.replace('_truth_regions_1based', ''))
+    original_bed = bed_file.replace('_truth_regions_1based', '')
     print(original_bed)
     truth_region_bed = bed_file.replace('_1based', '')
     print(truth_region_bed)
@@ -549,7 +552,6 @@ def remainder_size(bed_file):
 
     f = open(remainder_name, 'r')
     regions = [line.strip('\n') for line in f.readlines()]
-    f.close()
 
     total_length = 0
 
@@ -563,7 +565,7 @@ def remainder_size(bed_file):
 
     return total_length
 
-def bcftools_isec(file_prefix, decomposed_zipped, bed_prefix, bed_dict, bam, reference_vcf, reference_sample, whole_bed):
+def bcftools_isec(file_prefix, decomposed_zipped, bed_prefix, bed_dict, bam):
     """
     Intersect the two vcfs and limit to the truth regions and panel BED file.
 
@@ -582,12 +584,6 @@ def bcftools_isec(file_prefix, decomposed_zipped, bed_prefix, bed_dict, bam, ref
     :type bed_dict: Dictionary
     :param bam: Path to BAM file to be used in coverage calculation
     :type bam: String
-    :param reference_vcf: Path to the reference genome vcf
-    :type reference_vcf: String
-    :param reference_sample: Identifier in reference sample vcf
-    :type reference_sample: String
-    :param whole_bed: Path to combined BED file
-    :type whole_bed: String
     :return: Analysis of variant comparison
     :rtype: Dictionary
     """
@@ -605,11 +601,12 @@ def bcftools_isec(file_prefix, decomposed_zipped, bed_prefix, bed_dict, bam, ref
         if e.errno != 17:
             exit(1)
 
-    coverage_file = get_coverage(whole_bed, results, sample, bam)
-
-    path = '/results/Analysis/projects/HeredCancer/CysticValidation/HuRef/*truth_regions_1based.bed'
-    print(path)
+    path = bed_prefix + '*truth_regions_1based.bed'
     bed_files = glob.glob(path)
+
+    whole_bed = bed_prefix + '.whole.bed'
+
+    coverage_file = get_coverage(whole_bed, results, sample, bam)
 
     all_results = {}
     print(bed_files)
@@ -621,161 +618,99 @@ def bcftools_isec(file_prefix, decomposed_zipped, bed_prefix, bed_dict, bam, ref
             os.mkdir(folder)
         except OSError as e:
             if e.errno != 17:
-                print(folder)
-                print(e.errno)
+                print folder
+                print e.errno
                 exit(1)
 
-        if os.path.getsize(f) > 0:
+    command = '/results/Pipeline/program/bcftools-1.3.1/bcftools isec -R ' + f + ' -p ' + folder + \
+              ' /results/Analysis/projects/NBS/HuRef_il.vcf.gz ' + \
+              decomposed_zipped
+    try:
+        subprocess.check_call(command, shell=True)
+    except subprocess.CalledProcessError as e:
+        print 'Error executing command: ' + str(e.returncode)
+        exit(1)
 
-            command = '/results/Pipeline/program/bcftools-1.3.1/bcftools isec -R ' + f + ' -p ' + folder + \
-                      ' ' + reference_vcf +' ' + decomposed_zipped
-            try:
-                subprocess.check_call(command, shell=True)
-            except subprocess.CalledProcessError as e:
-                print('Error executing command: ' + str(e.returncode))
-                exit(1)
+    print 'Checking for false calls.'
+    false_negs_ann = annotate_false_negs(folder, coverage_file)
+    false_pos_ann = annotate_false_pos(folder, coverage_file, sample)
+    print 'Checking genotype for shared calls.'
+    genotypes = check_genotype(folder, sample, coverage_file)
 
-            print('Checking for false calls.')
-            false_negs_ann = annotate_false_negs(folder, reference_sample, coverage_file)
-            false_pos_ann = annotate_false_pos(folder, coverage_file, sample)
-            print('Checking genotype for shared calls.')
-            num_matching, genotypes = check_genotype(folder, sample, reference_sample, coverage_file)
+    false_negs = len(false_negs_ann)
+    false_pos = len(false_pos_ann)
+    num_matching = genotypes['matching']
+    num_mismatch = len(genotypes['mismatching'])
+    true_positives = num_matching + num_mismatch
 
-            false_negs_indels = len(false_negs_ann['indels'])
-            false_negs_cov = len(false_negs_ann['no_coverage'])
-            false_negs_ev_alt = len(false_negs_ann['evidence_of_alt'])
-            false_neg_oth = len(false_negs_ann['false_neg'])
-            false_negs = false_neg_oth + false_negs_cov + false_negs_cov + false_negs_ev_alt + false_negs_indels
-            false_pos = len(false_pos_ann)
-            num_mismatch = len(genotypes)
-            true_positives = num_matching + num_mismatch
+    total_bases = file_len(coverage_file) - 1 #-1 for header line
+    true_negatives = total_bases - (false_negs + false_pos + num_mismatch + num_matching)
 
-            total_bases = int(bed_dict[f]['length'])
-            true_negatives = total_bases - (false_negs + false_pos + num_mismatch + num_matching)
+    if true_negatives == 0:
+        print 'ERROR: Coverage file empty'
+        exit(1)
 
-            if true_negatives == 0:
-                print('ERROR: Coverage file empty')
-                exit(1)
+    print num_matching
+    print true_positives
+    sensitivity = (num_matching + num_mismatch) / float((true_positives + false_negs)) * 100
+    print sensitivity
 
-            try:
-                sensitivity = (num_matching + num_mismatch) / float((true_positives + false_pos)) * 100
-            except ZeroDivisionError:
-                sensitivity = 0.0
+    total_pos = true_positives + false_pos
+    actual_pos = true_positives + false_negs
+    total_negs = true_negatives + false_negs
+    actual_negs = true_negatives + false_pos
 
-            total_pos = true_positives + false_pos
-            actual_pos = true_positives + false_negs
-            total_negs = true_negatives + false_negs
-            actual_negs = true_negatives + false_pos
+    if total_pos == 0 or actual_pos == 0 or total_negs == 0 or actual_negs == 0:
+        denominator = 1
+    else:
+        denominator = total_pos * total_negs * actual_pos * actual_negs
 
-            if total_pos == 0 or actual_pos == 0 or total_negs == 0 or actual_negs == 0:
-                denominator = 1
-            else:
-                denominator = total_pos * total_negs * actual_pos * actual_negs
+    mcc = (true_positives * true_negatives - false_pos * false_negs)/\
+          sqrt(denominator)
+    print mcc
 
-            mcc = (true_positives * true_negatives - false_pos * false_negs) / \
-                  sqrt(denominator)
+    #remainder_length = remainder_size(bed_prefix)
+   # print remainder_length
+    print total_bases
+    #percent_covered = float(total_bases) / (total_bases + remainder_length) * 100
 
-            remainder_length = remainder_size(f)
-            percent_covered = float(total_bases) / (total_bases + remainder_length) * 100
 
-            out = {'false_negative': false_negs_ann, 'false_positive': false_pos_ann,
-                   'mismatching_genotype': genotypes, 'matching_variants': num_matching,
-                   'num_true_negatives': true_negatives, 'sensitivity': sensitivity, 'MCC': mcc,
-                   'small_panel_remainder_length': remainder_length, 'percent_small_panel_covered': percent_covered,
-                   'num_false_positive': false_pos, 'num_false_negative':{'indel':false_negs_indels,
-                                                                          'no_coverage':false_negs_cov,
-                                                                          'ev_of_alt':false_negs_ev_alt,
-                                                                          'false_neg':false_neg_oth,
-                                                                          'total':false_negs},
-                   'num_mismatching_genotype': num_mismatch}
-        else:
-            total_bases = int(bed_dict[f]['length'])
-            print(total_bases)
+    out = {'false_negative':false_negs_ann, 'false_positive':false_pos_ann,
+               'mismatching_genotype':genotypes['mismatching'], 'matching_variants':genotypes['matching'],
+               'num_true_negatives':true_negatives, 'sensitivity':sensitivity, 'MCC':mcc}
 
-            original_bed = f.replace('_truth_regions_1based', '')
-            print(original_bed)
-
-            f = open(original_bed, 'r')
-            regions = [line.strip('\n') for line in f.readlines()]
-            f.close()
-
-            remainder_length = 0
-
-            for region in regions:
-                if region.startswith('#'):
-                    pass
-                else:
-                    fields = region.split('\t')
-                    start = int(fields[1])
-                    end = int(fields[2])
-
-                    length = end - start
-                    remainder_length += length
-
-            print(remainder_length)
-            percent_covered = float(total_bases) / (total_bases + remainder_length) * 100
-            print(percent_covered)
-
-            out = {'false_negative': {}, 'false_positive': {},
-                   'mismatching_genotype': {}, 'matching_variants': 0,
-                   'num_true_negatives': 0, 'sensitivity': 0, 'MCC': 0,
-                   'small_panel_remainder_length': remainder_length, 'percent_small_panel_covered': percent_covered,
-                   'num_false_positive':0, 'num_false_negative':{'indel':0, 'no_coverage':0, 'ev_of_alt':0, 'false_neg':0, 'total':0},
-                   'num_mismatching_genotype':0}
-        all_results[abv] = out
+    all_results[bed_prefix] = out
 
     return all_results
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-o', help='Location of output', required=True)
-    parser.add_argument('-p', help='Prefix given to all results files (i.e. worklist-patient)', required=True)
+    parser.add_argument('-d', help='Location of output from pipeline', required=True)
+    parser.add_argument('-p', help='Prefix given to all results files (i.e. woklist-patient)', required=True)
     parser.add_argument('-b', help='Prefix associated with panel BED files (i.e. NGD_)', required=True)
-    parser.add_argument('-bam', help='BAM file for run', required=True)
-    parser.add_argument('-v', help='VCF to be compared', required=True)
-    parser.add_argument('-rv', help='Path to reference genome vcf', default='/results/Analysis/HiSeq_validation/giab/giab-NA12878/truth_small_variants.decomposed.normalised.vcf.gz')
-    parser.add_argument('-rs', help='Identifier used in reference vcf', default='INTEGRATION')
 
     args = parser.parse_args()
 
-    directory=args.o
+    directory=args.d
     if directory.endswith('/'):
         directory = os.path.dirname(directory)
-    vcf = args.v
     file_prefix=args.p
     bed_prefix=args.b
-    bam = args.bam
-    reference_vcf = args.rv
-    reference_sample = args.rs
 
-    command = 'export PATH=${PATH}:/results/Pipeline/program/bedtools-2.17.0/bin'
-    print(command)
-    try:
-        subprocess.check_call(command, shell=True)
-    except subprocess.CalledProcessError as e:
-        print(command)
-        print('Error executing command: ' + str(e.returncode))
-        exit(1)
+    bed_dict = generate_bed_intersects(bed_prefix, directory)
 
-    bed_dict, whole_bed = generate_bed_intersects(bed_prefix, directory)
+    decomposed_zipped = prepare_vcf(directory, file_prefix)
 
-    decomposed_zipped = prepare_vcf(vcf)
+    results = bcftools_isec(file_prefix, decomposed_zipped, bed_prefix, bed_dict)
 
-    results = bcftools_isec(file_prefix, decomposed_zipped, bed_prefix, bed_dict, bam, reference_vcf, reference_sample, whole_bed)
-
-    f = open(directory+'/giab_summary.txt', 'w')
+    f = open(directory+'/huref_summary.txt', 'w')
     j = json.dumps(results, indent=4)
     print >> f, j
     f.close()
 
-    f = open(directory + '/giab_summary.html', 'w')
-    f.write(json2html.convert(json=j))
-    f.close()
 
 
 
 
-
-if __name__ == '__main__':
-    main()
+main()

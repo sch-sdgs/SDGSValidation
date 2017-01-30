@@ -64,6 +64,9 @@ def generate_gene_dict(beds, output_folder):
                 all_lines.append(line)
 
     raw_regions = '\n'.join(all_lines)
+    f = open ('/home/bioinfo/Natalie/Validation/refactor_test/raw_regions.bed', 'w')
+    f.write(raw_regions)
+    f.close()
 
     whole = BedTool(raw_regions, from_string=True)
     whole_sorted =  whole.sort()
@@ -211,7 +214,6 @@ def get_coverage_for_dict(coverage_input, bed_dict):
             for name in bed_dict[abv]['regions'][chrom].keys():
                 start = bed_dict[abv]['regions'][chrom][name]['start']
                 end = bed_dict[abv]['regions'][chrom][name]['end']
-
                 #calculate average coverage and portions for region plots
                 count_less_18 = 0
                 count_18_30 = 0

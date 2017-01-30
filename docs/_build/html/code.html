@@ -1,0 +1,222 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Appendix 1 - SDGS Validation &mdash; SDGS Validation 1.0.0 documentation</title>
+    
+    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '1.0.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="SDGS Validation 1.0.0 documentation" href="index.html" />
+    <link rel="prev" title="Welcome to SDGS Validation’s documentation!" href="index.html" /> 
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="index.html" title="Welcome to SDGS Validation’s documentation!"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">SDGS Validation 1.0.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="appendix-1-sdgs-validation">
+<h1>Appendix 1 - SDGS Validation<a class="headerlink" href="#appendix-1-sdgs-validation" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="comparison-with-the-genome-in-a-bottle-reference-sample">
+<h2>Comparison with the Genome in a Bottle Reference Sample<a class="headerlink" href="#comparison-with-the-genome-in-a-bottle-reference-sample" title="Permalink to this headline">¶</a></h2>
+<p>This script carries out a comparison of sequencing results to the reference calls for NA12878 (the flagship genome for the Genome in a Bottle Consortium).
+Sequencing of a reference sample is now required to meet best practice guidelines and most NHS laboratories are currently using this genome.</p>
+<p>In order for the variants to be filtered to the regions of interest an intersection of the BED files for the panel being validated and the GIAB truth regions must be generated. Any regions outside the truth regions cannot be confirmed as homozygous reference and these regions cannot be annotated as true or false calls.</p>
+<div class="section" id="generate-bed-intersects">
+<h3>Generate BED Intersects<a class="headerlink" href="#generate-bed-intersects" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="generate-whole-bed">
+<h4>Generate Whole BED<a class="headerlink" href="#generate-whole-bed" title="Permalink to this headline">¶</a></h4>
+</div>
+<div class="section" id="generate-remainder">
+<h4>Generate Remainder<a class="headerlink" href="#generate-remainder" title="Permalink to this headline">¶</a></h4>
+</div>
+</div>
+<div class="section" id="compare-vcfs">
+<h3>Compare VCFs<a class="headerlink" href="#compare-vcfs" title="Permalink to this headline">¶</a></h3>
+<p>The BED files generated are used to filter the VCF files for comparison using bcftools isec.</p>
+<div class="section" id="prepare-vcf">
+<h4>Prepare VCF<a class="headerlink" href="#prepare-vcf" title="Permalink to this headline">¶</a></h4>
+</div>
+<div class="section" id="intersect-vcfs">
+<h4>Intersect VCFs<a class="headerlink" href="#intersect-vcfs" title="Permalink to this headline">¶</a></h4>
+</div>
+<div class="section" id="annotate-results">
+<h4>Annotate results<a class="headerlink" href="#annotate-results" title="Permalink to this headline">¶</a></h4>
+<p>The files produced contain the variants that are shared between the two VCF files and those that are unique to each data set (i.e. false positives and negatives). The false calls are used to generate the sensitivity and MCC values for each panel.
+False calls are annotated with the coverage at that position to determine whether there is evidence of the missed variant for false negatives and if there is a coverage related reason for false positives or mismatching genotypes.</p>
+<div class="section" id="false-positives">
+<h5>False Positives<a class="headerlink" href="#false-positives" title="Permalink to this headline">¶</a></h5>
+</div>
+<div class="section" id="false-negatives">
+<h5>False Negatives<a class="headerlink" href="#false-negatives" title="Permalink to this headline">¶</a></h5>
+</div>
+<div class="section" id="mismatching-genotypes">
+<h5>Mismatching Genotypes<a class="headerlink" href="#mismatching-genotypes" title="Permalink to this headline">¶</a></h5>
+</div>
+<div class="section" id="check-coverage">
+<h5>Check Coverage<a class="headerlink" href="#check-coverage" title="Permalink to this headline">¶</a></h5>
+</div>
+<div class="section" id="calculating-remainder">
+<h5>Calculating Remainder<a class="headerlink" href="#calculating-remainder" title="Permalink to this headline">¶</a></h5>
+</div>
+</div>
+</div>
+</div>
+<div class="section" id="generation-of-coverage-graphs-for-validation-samples-sequenced">
+<h2>Generation of Coverage Graphs for Validation Samples Sequenced<a class="headerlink" href="#generation-of-coverage-graphs-for-validation-samples-sequenced" title="Permalink to this headline">¶</a></h2>
+<p>This script creates graphs showing a breakdown of coverage across the validation patients (-d) for the regions in the BED files listed (-b).</p>
+<p>Two sets of graphs are generated: proportion of regions covered at pre-defined depths and a breakdown of each exon in each gene to help highlight any areas that may cause problems when the panel goes into service. The graphs are saved in the specified folder (-o) and named either by the panel or gene.</p>
+<div class="section" id="generating-dictionaries">
+<h3>Generating Dictionaries<a class="headerlink" href="#generating-dictionaries" title="Permalink to this headline">¶</a></h3>
+<p>The regions of interest and corresponding coverage values are used to populate a series of dictionaries. The information within the dictionaries can then be accessed quickly when generating the graphs.</p>
+<div class="section" id="generate-bed-dictionary">
+<h4>Generate BED Dictionary<a class="headerlink" href="#generate-bed-dictionary" title="Permalink to this headline">¶</a></h4>
+</div>
+<div class="section" id="generate-gene-dictionary">
+<h4>Generate Gene Dictionary<a class="headerlink" href="#generate-gene-dictionary" title="Permalink to this headline">¶</a></h4>
+</div>
+<div class="section" id="getting-coverage-values">
+<h4>Getting Coverage Values<a class="headerlink" href="#getting-coverage-values" title="Permalink to this headline">¶</a></h4>
+</div>
+</div>
+<div class="section" id="generating-plots">
+<h3>Generating Plots<a class="headerlink" href="#generating-plots" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="sub-panel-graphs">
+<h4>Sub Panel Graphs<a class="headerlink" href="#sub-panel-graphs" title="Permalink to this headline">¶</a></h4>
+</div>
+<div class="section" id="gene-graphs">
+<h4>Gene Graphs<a class="headerlink" href="#gene-graphs" title="Permalink to this headline">¶</a></h4>
+</div>
+</div>
+</div>
+<div class="section" id="calculating-the-number-of-unique-variants-analysed-during-the-validation">
+<h2>Calculating the Number of Unique Variants Analysed During the Validation<a class="headerlink" href="#calculating-the-number-of-unique-variants-analysed-during-the-validation" title="Permalink to this headline">¶</a></h2>
+<p>This script calculates the number of unique variants identified that are shared, unique to the MiSeq data and unique to the HiSeq data. The output is a series of JSON files detailing the variants and counts.</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Appendix 1 - SDGS Validation</a><ul>
+<li><a class="reference internal" href="#comparison-with-the-genome-in-a-bottle-reference-sample">Comparison with the Genome in a Bottle Reference Sample</a><ul>
+<li><a class="reference internal" href="#generate-bed-intersects">Generate BED Intersects</a><ul>
+<li><a class="reference internal" href="#generate-whole-bed">Generate Whole BED</a></li>
+<li><a class="reference internal" href="#generate-remainder">Generate Remainder</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#compare-vcfs">Compare VCFs</a><ul>
+<li><a class="reference internal" href="#prepare-vcf">Prepare VCF</a></li>
+<li><a class="reference internal" href="#intersect-vcfs">Intersect VCFs</a></li>
+<li><a class="reference internal" href="#annotate-results">Annotate results</a><ul>
+<li><a class="reference internal" href="#false-positives">False Positives</a></li>
+<li><a class="reference internal" href="#false-negatives">False Negatives</a></li>
+<li><a class="reference internal" href="#mismatching-genotypes">Mismatching Genotypes</a></li>
+<li><a class="reference internal" href="#check-coverage">Check Coverage</a></li>
+<li><a class="reference internal" href="#calculating-remainder">Calculating Remainder</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#generation-of-coverage-graphs-for-validation-samples-sequenced">Generation of Coverage Graphs for Validation Samples Sequenced</a><ul>
+<li><a class="reference internal" href="#generating-dictionaries">Generating Dictionaries</a><ul>
+<li><a class="reference internal" href="#generate-bed-dictionary">Generate BED Dictionary</a></li>
+<li><a class="reference internal" href="#generate-gene-dictionary">Generate Gene Dictionary</a></li>
+<li><a class="reference internal" href="#getting-coverage-values">Getting Coverage Values</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#generating-plots">Generating Plots</a><ul>
+<li><a class="reference internal" href="#sub-panel-graphs">Sub Panel Graphs</a></li>
+<li><a class="reference internal" href="#gene-graphs">Gene Graphs</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#calculating-the-number-of-unique-variants-analysed-during-the-validation">Calculating the Number of Unique Variants Analysed During the Validation</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="index.html"
+                        title="previous chapter">Welcome to SDGS Validation&#8217;s documentation!</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/code.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="index.html" title="Welcome to SDGS Validation’s documentation!"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">SDGS Validation 1.0.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &copy; Copyright 2016, Natalie Groves.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.3.5.
+    </div>
+  </body>
+</html>

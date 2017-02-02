@@ -3,7 +3,9 @@ import sys
 from validation import misc_validation
 import os
 import json
-
+from flask.ext.wtf import Form
+from wtforms.fields import TextField, SubmitField
+import pprint
 app = Flask(__name__)
 
 
@@ -88,8 +90,46 @@ def variant_validation():
                                                                            classes=[
                                                                                "table table-bordered table-striped"])))
 
+
+
+@app.route('/giab/view', methods=["GET", "POST"])
+def giab_view():
+    if request.method == "GET":
+        return render_template('view_giab.html')
+
+@app.route('/giab/results', methods=["GET", "POST"])
+def giab_results():
+    print('requested')
+    print(request.method)
+    if request.method == "GET":
+        print('requested')
+        print(request.method)
+        filepath = request.args.get("filepath")
+        panel = request.args.get("panel")
+        print(panel)
+        print(filepath)
+        f = open(filepath, 'r')
+        j = json.load(f)
+        f.close()
+        return render_template('giab_results.html', panel=j[panel], panelname=panel, filepath=filepath)
+
+@app.route('/giab/summary', methods=["GET", "POST"])
+def giab_summary():
+    print('requested')
+    print(request.method)
+    if request.method == "POST":
+        print('requested')
+        print(request.method)
+        filepath = request.form["filepath"]
+        print(filepath)
+        f = open(filepath, 'r')
+        j = json.load(f)
+        f.close()
+        return render_template('giab_summary.html', panels=j, filepath=filepath)
+
 if __name__ == "__main__":
-    app.run(host= '10.182.131.21',threaded=True,port=5002)
+    app.run(host= '10.182.131.21',threaded=True,port=5010)
+    app.secret_key = 'development key'
 
 
 

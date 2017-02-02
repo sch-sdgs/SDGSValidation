@@ -35,7 +35,8 @@ def generate_whole_bed(truth_regions, bedtool_list, out_dir):
     whole_region = truth_regions.intersect(bedtool_list)
     whole_region_sorted = whole_region.sort()
     whole_region_merged = whole_region_sorted.merge()
-    whole_bed = out_dir + '.whole.bed'
+    print('out_dir = ' + out_dir)
+    whole_bed = out_dir + 'whole.bed'
     whole_region_merged.moveto(whole_bed)
     return whole_bed
 
@@ -72,7 +73,7 @@ def generate_remainder(whole_bed, out_dir, bed_list):
     whole_merged.saveas()
 
     remainder = whole_merged.subtract(whole_truth)
-    remainder.moveto(out_dir + '.remainder.bed')
+    remainder.moveto(out_dir + 'remainder.bed')
     missing_regions = whole_merged.subtract(whole_truth, A=True)
     return missing_regions
 
@@ -103,9 +104,9 @@ def generate_bed_intersects(bed_prefix, directory):
     print('Generating truth regions.')
     for f in bed_files:
         name = os.path.basename(f)
-        no_header = '/results/Analysis/projects/HeredCancer/CysticValidation/HuRef/' + name.replace('.bed', '_noheader.bed')
-        one_based = '/results/Analysis/projects/HeredCancer/CysticValidation/HuRef/' + name.replace('.bed', '_truth_regions_1based.bed')
-        truth_regions_panel = '/results/Analysis/projects/HeredCancer/CysticValidation/HuRef/' + name.replace('.bed', '_truth_regions.bed')
+        no_header = directory + "/" + name.replace('.bed', '_noheader.bed')
+        one_based = directory + "/" + name.replace('.bed', '_truth_regions_1based.bed')
+        truth_regions_panel = directory + "/" + name.replace('.bed', '_truth_regions.bed')
 
         #Create BED file without header for intersect
         command = "grep -i -v start " + f + " > " + no_header
@@ -563,7 +564,7 @@ def remainder_size(bed_file):
 
     return total_length
 
-def bcftools_isec(file_prefix, decomposed_zipped, bed_prefix, bed_dict, bam, reference_vcf, reference_sample, whole_bed):
+def bcftools_isec(file_prefix, decomposed_zipped, bed_dict, bam, reference_vcf, reference_sample, whole_bed, out_dir):
     """
     Intersect the two vcfs and limit to the truth regions and panel BED file.
 
@@ -576,8 +577,6 @@ def bcftools_isec(file_prefix, decomposed_zipped, bed_prefix, bed_dict, bam, ref
     :type file_prefix: String
     :param decomposed_zipped: File path for the decomposed and zipped vcf
     :type decomposed_zipped: String
-    :param bed_prefix: Prefix for the BED files in the panel
-    :type bed_prefix: String
     :param bed_dict: Dictionary containing the abbreviations for each of the BED files - to be used as folder names
     :type bed_dict: Dictionary
     :param bam: Path to BAM file to be used in coverage calculation
@@ -588,6 +587,8 @@ def bcftools_isec(file_prefix, decomposed_zipped, bed_prefix, bed_dict, bam, ref
     :type reference_sample: String
     :param whole_bed: Path to combined BED file
     :type whole_bed: String
+    :param out_dir: Directory for results files
+    :type out_dir: String
     :return: Analysis of variant comparison
     :rtype: Dictionary
     """
@@ -595,8 +596,7 @@ def bcftools_isec(file_prefix, decomposed_zipped, bed_prefix, bed_dict, bam, ref
     sample_split = file_prefix.split('-')
     sample = sample_split[1] + '-' + sample_split[2]
 
-    directory = os.path.dirname(decomposed_zipped)
-    results = directory + '/giab_results'
+    results = out_dir + '/giab_results'
     try:
         os.mkdir(results)
     except OSError as e:
@@ -607,7 +607,7 @@ def bcftools_isec(file_prefix, decomposed_zipped, bed_prefix, bed_dict, bam, ref
 
     coverage_file = get_coverage(whole_bed, results, sample, bam)
 
-    path = '/results/Analysis/projects/HeredCancer/CysticValidation/HuRef/*truth_regions_1based.bed'
+    path = out_dir + '/*truth_regions_1based.bed'
     print(path)
     bed_files = glob.glob(path)
 
@@ -762,7 +762,7 @@ def main():
 
     decomposed_zipped = prepare_vcf(vcf)
 
-    results = bcftools_isec(file_prefix, decomposed_zipped, bed_prefix, bed_dict, bam, reference_vcf, reference_sample, whole_bed)
+    results = bcftools_isec(file_prefix, decomposed_zipped, bed_dict, bam, reference_vcf, reference_sample, whole_bed, directory)
 
     f = open(directory+'/giab_summary.txt', 'w')
     j = json.dumps(results, indent=4)

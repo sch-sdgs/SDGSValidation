@@ -1,0 +1,292 @@
+<html>
+<head>
+    <title>SDGS NGS Validation</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
+    <script src="//netdna.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
+    <link rel=stylesheet type=text/css href="/static/validation.css">
+</head>
+<body>
+<div id="container">
+    <div class="row">
+        <div class="col-md-2"></div>
+        <div class="col-md-8">
+            <div class="row">
+                <div id="{{ panel }}">
+                    <div>
+                        <h2>{{ panelname }}</h2>
+                    </div>
+                    <div name="totals">
+                        <table class="table table-striped">
+                            <tr>
+                                <td><strong>Sensitivity</strong></td>
+                                <td>{{ panel["sensitivity"] }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>MCC</strong></td>
+                                <td>{{ panel["MCC"] }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Matching Variants</strong></td>
+                                <td>{{ panel["matching_variants"] }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>True Negatives</strong></td>
+                                <td>{{ panel["num_true_negatives"] }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>False Positive</strong></td>
+                                <td>{{ panel["num_false_positive"] }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Mismatching Genotype</strong></td>
+                                <td>{{ panel["num_mismatching_genotype"] }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>False Negative</strong></td>
+                                <td>{{ panel["num_false_negative"]["total"] }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Percent of Panel Covered</strong></td>
+                                <td>{{ panel["percent_small_panel_covered"] }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Number of bases outside ROI</strong></td>
+                                <td>{{ panel["small_panel_remainder_length"] }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div>
+                        <h3>False Positives</h3>
+                        <table class="table table-striped">
+                            <tr>
+                                <th>Chrom</th>
+                                <th>Position</th>
+                                <th>Ref</th>
+                                <th>Alt</th>
+                                <th>Genotype</th>
+                                <th>QUAL</th>
+                                <th>VCF Total Depth</th>
+                                <th>VCF Ref Depth</th>
+                                <th>VCF Alt Depth</th>
+                                <th>BAM Total Depth</th>
+                                <th>BAM Ref Depth</th>
+                                <th>BAM Alt Depth</th>
+                            </tr>
+                            {% for fp in panel["false_positive"] %}
+                            <tr>
+                                <td>{{ fp["chrom"] }}</td>
+                                <td>{{ fp["pos"] }}</td>
+                                <td>{{ fp["ref"] }}</td>
+                                <td>{{ fp["alt"] }}</td>
+                                <td>{{ fp["GT"][0] }}/{{ fp["GT"][1] }}</td>
+                                <td>{{ fp["QUAL"] }}</td>
+                                <td>{{ fp["vcf_depth"]["DP"] }}</td>
+                                {% if fp["vcf_depth"]["AD"] == "N/A" %}
+                                <td>N/A</td>
+                                <td>N/A</td>
+                                {% else %}
+                                <td>{{ fp["vcf_depth"]["AD"][0] }}</td>
+                                <td>{{ fp["vcf_depth"]["AD"][1] }}</td>
+                                {% endif %}
+                                <td>{{ fp["coverage"]["total"] }}</td>
+                                <td>{{ fp["coverage"]["ref"] }}</td>
+                                <td>{{ fp["coverage"]["alt"] }}</td>
+                            </tr>
+                            {% endfor %}
+                        </table>
+                    </div>
+                    <div>
+                        <h3>False Negatives</h3>
+                        <table class="table table-striped">
+                            <tr>
+                                <td><strong>Total</strong></td>
+                                <td>{{ panel["num_false_negative"]["total"] }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Indels</strong></td>
+                                <td>{{ panel["num_false_negative"]["indel"] }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Evidence of Alternate Allele</strong></td>
+                                <td>{{ panel["num_false_negative"]["ev_of_alt"] }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Zero Coverage</strong></td>
+                                <td>{{ panel["num_false_negative"]["no_coverage"] }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Other</strong></td>
+                                <td>{{ panel["num_false_negative"]["false_neg"] }}</td>
+                            </tr>
+                        </table>
+                        <h4>False Negatives with Evidence of the Alternate Allele</h4>
+                        <table class="table table-striped">
+                            <tr>
+                                <th>Chrom</th>
+                                <th>Position</th>
+                                <th>Ref</th>
+                                <th>Alt</th>
+                                <th>Genotype</th>
+                                <th>QUAL</th>
+                                <th>VCF Total Depth</th>
+                                <th>VCF Ref Depth</th>
+                                <th>VCF Alt Depth</th>
+                                <th>BAM Total Depth</th>
+                                <th>BAM Ref Depth</th>
+                                <th>BAM Alt Depth</th>
+                            </tr>
+                            {% for fp in panel["false_negative"]["evidence_of_alt"] %}
+                            <tr>
+                                <td>{{ fp["chrom"] }}</td>
+                                <td>{{ fp["pos"] }}</td>
+                                <td>{{ fp["ref"] }}</td>
+                                <td>{{ fp["alt"] }}</td>
+                                <td>{{ fp["GT"][0] }}/{{ fp["GT"][1] }}</td>
+                                <td>{{ fp["QUAL"] }}</td>
+                                <td>{{ fp["coverage"]["total"] }}</td>
+                                <td>{{ fp["coverage"]["ref"] }}</td>
+                                <td>{{ fp["coverage"]["alt"] }}</td>
+                            </tr>
+                            {% endfor %}
+                        </table>
+                        <h4>False Negatives that are indels</h4>
+                        <table class="table table-striped">
+                            <tr>
+                                <th>Chrom</th>
+                                <th>Position</th>
+                                <th>Ref</th>
+                                <th>Alt</th>
+                                <th>Genotype</th>
+                                <th>QUAL</th>
+                                <th>VCF Total Depth</th>
+                                <th>VCF Ref Depth</th>
+                                <th>VCF Alt Depth</th>
+                                <th>BAM Total Depth</th>
+                                <th>BAM Ref Depth</th>
+                                <th>BAM Alt Depth</th>
+                            </tr>
+                            {% for fp in panel["false_negative"]["indels"] %}
+                            <tr>
+                                <td>{{ fp["chrom"] }}</td>
+                                <td>{{ fp["pos"] }}</td>
+                                <td>{{ fp["ref"] }}</td>
+                                <td>{{ fp["alt"] }}</td>
+                                <td>{{ fp["GT"][0] }}/{{ fp["GT"][1] }}</td>
+                                <td>{{ fp["QUAL"] }}</td>
+                                <td>{{ fp["coverage"]["total"] }}</td>
+                                <td>{{ fp["coverage"]["ref"] }}</td>
+                                <td>{{ fp["coverage"]["alt"] }}</td>
+                            </tr>
+                            {% endfor %}
+                        </table>
+                        <h4>False Negatives with Zero Coverage</h4>
+                        <table class="table table-striped">
+                            <tr>
+                                <th>Chrom</th>
+                                <th>Position</th>
+                                <th>Ref</th>
+                                <th>Alt</th>
+                                <th>Genotype</th>
+                                <th>QUAL</th>
+                                <th>VCF Total Depth</th>
+                                <th>VCF Ref Depth</th>
+                                <th>VCF Alt Depth</th>
+                                <th>BAM Total Depth</th>
+                                <th>BAM Ref Depth</th>
+                                <th>BAM Alt Depth</th>
+                            </tr>
+                            {% for fp in panel["false_negative"]["no_coverage"] %}
+                            <tr>
+                                <td>{{ fp["chrom"] }}</td>
+                                <td>{{ fp["pos"] }}</td>
+                                <td>{{ fp["ref"] }}</td>
+                                <td>{{ fp["alt"] }}</td>
+                                <td>{{ fp["GT"][0] }}/{{ fp["GT"][1] }}</td>
+                                <td>{{ fp["QUAL"] }}</td>
+                                <td>{{ fp["coverage"]["total"] }}</td>
+                                <td>{{ fp["coverage"]["ref"] }}</td>
+                                <td>{{ fp["coverage"]["alt"] }}</td>
+                            </tr>
+                            {% endfor %}
+                        </table>
+                        <h4>All Other False Negatives</h4>
+                        <table class="table table-striped">
+                            <tr>
+                                <th>Chrom</th>
+                                <th>Position</th>
+                                <th>Ref</th>
+                                <th>Alt</th>
+                                <th>Genotype</th>
+                                <th>QUAL</th>
+                                <th>VCF Total Depth</th>
+                                <th>VCF Ref Depth</th>
+                                <th>VCF Alt Depth</th>
+                                <th>BAM Total Depth</th>
+                                <th>BAM Ref Depth</th>
+                                <th>BAM Alt Depth</th>
+                            </tr>
+                            {% for fp in panel["false_negative"]["false_neg"] %}
+                            <tr>
+                                <td>{{ fp["chrom"] }}</td>
+                                <td>{{ fp["pos"] }}</td>
+                                <td>{{ fp["ref"] }}</td>
+                                <td>{{ fp["alt"] }}</td>
+                                <td>{{ fp["GT"][0] }}/{{ fp["GT"][1] }}</td>
+                                <td>{{ fp["QUAL"] }}</td>
+                                <td>{{ fp["coverage"]["total"] }}</td>
+                                <td>{{ fp["coverage"]["ref"] }}</td>
+                                <td>{{ fp["coverage"]["alt"] }}</td>
+                            </tr>
+                            {% endfor %}
+                        </table>
+                    </div>
+                    <div>
+                        <h3>Mismatching Genotype</h3>
+                        <table class="table table-striped">
+                            <tr>
+                                <th>Chrom</th>
+                                <th>Position</th>
+                                <th>Ref</th>
+                                <th>Alt</th>
+                                <th>GIAB Genotype</th>
+                                <th>VCF Genotype</th>
+                                <th>QUAL</th>
+                                <th>VCF Total Depth</th>
+                                <th>VCF Ref Depth</th>
+                                <th>VCF Alt Depth</th>
+                                <th>BAM Total Depth</th>
+                                <th>BAM Ref Depth</th>
+                                <th>BAM Alt Depth</th>
+                            </tr>
+                            {% for fp in panel["mismatching_genotype"] %}
+                            <tr>
+                                <td>{{ fp["chrom"] }}</td>
+                                <td>{{ fp["pos"] }}</td>
+                                <td>{{ fp["ref"] }}</td>
+                                <td>{{ fp["alt"] }}</td>
+                                <td>{{ fp["GT"]["GIAB"][0] }}/{{ fp["GT"]["GIAB"][1] }}</td>
+                                <td>{{ fp["GT"]["VCF"][0] }}/{{ fp["GT"]["VCF"][1] }}</td>
+                                <td>{{ fp["QUAL"] }}</td>
+                                <td>{{ fp["vcf_depth"]["DP"] }}</td>
+                                {% if fp["vcf_depth"]["AD"] == "N/A" %}
+                                <td>N/A</td>
+                                <td>N/A</td>
+                                {% else %}
+                                <td>{{ fp["vcf_depth"]["AD"][0] }}</td>
+                                <td>{{ fp["vcf_depth"]["AD"][1] }}</td>
+                                {% endif %}
+                                <td>{{ fp["coverage"]["total"] }}</td>
+                                <td>{{ fp["coverage"]["ref"] }}</td>
+                                <td>{{ fp["coverage"]["alt"] }}</td>
+                            </tr>
+                            {% endfor %}
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2"></div>
+    </div>
+</div>
+</body>

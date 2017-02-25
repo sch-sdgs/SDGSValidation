@@ -79,14 +79,27 @@ def main():
 
     #annotate
     coverage = get_coverage(no_header, out_dir, s2, bam)
-    false_negs = annotate_false_negs(out_dir, s1, coverage)
-    false_pos = annotate_false_pos(out_dir, coverage, s2)
+    false_negs_ann = annotate_false_negs(out_dir, s1, coverage)
+    false_pos_ann = annotate_false_pos(out_dir, coverage, s2)
     matching, mismatching_genotype = check_genotype(out_dir, s2, s1, coverage)
+    false_negs_indels = len(false_negs_ann['indels'])
+    false_negs_cov = len(false_negs_ann['no_coverage'])
+    false_negs_ev_alt = len(false_negs_ann['evidence_of_alt'])
+    false_neg_oth = len(false_negs_ann['false_neg'])
+    false_negs = false_neg_oth + false_negs_cov + false_negs_cov + false_negs_ev_alt + false_negs_indels
+    false_pos = len(false_pos_ann)
+    num_mismatch = len(mismatching_genotype)
 
-    out = {'false_negative': false_negs, 'num_false_neg':len(false_negs),
-           'false_positive': false_pos, 'num_false_pos':len(false_pos),
-           'mismatching_genotype': mismatching_genotype, 'num_mismatching':len(mismatching_genotype),
-           'matching_variants': matching}
+    out = {'result':{'false_negative': false_negs_ann, 'false_positive': false_pos_ann,
+           'mismatching_genotype': mismatching_genotype, 'matching_variants': matching,
+           'num_true_negatives': "Not calculated", 'sensitivity': "Not calculated", 'MCC': "Not calculated",
+           'small_panel_remainder_length': "Not calculated", 'percent_small_panel_covered': "Not calculated",
+           'num_false_positive': false_pos, 'num_false_negative': {'indel': false_negs_indels,
+                                                                   'no_coverage': false_negs_cov,
+                                                                   'ev_of_alt': false_negs_ev_alt,
+                                                                   'false_neg': false_neg_oth,
+                                                                   'total': false_negs},
+           'num_mismatching_genotype': num_mismatch}}
 
     f = open(out_dir + '/summary.json', 'w')
     j = json.dumps(out, indent=4)

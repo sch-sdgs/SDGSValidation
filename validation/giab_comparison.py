@@ -36,7 +36,7 @@ def generate_whole_bed(truth_regions, bedtool_list, out_dir):
     whole_region_sorted = whole_region.sort()
     whole_region_merged = whole_region_sorted.merge()
     print('out_dir = ' + out_dir)
-    whole_bed = out_dir + 'whole.bed'
+    whole_bed = out_dir + '/whole.bed'
     whole_region_merged.moveto(whole_bed)
     return whole_bed
 
@@ -53,28 +53,30 @@ def generate_remainder(whole_bed, out_dir, bed_list):
     :return: BEDTool containing any regions that are completely missing from the truth regions
     :rtype: BedTool
     """
+    try:
+        whole_truth = BedTool(whole_bed)
+        whole_truth.saveas()
+        whole = BedTool()
 
-    whole_truth = BedTool(whole_bed)
-    whole_truth.saveas()
-    whole = BedTool()
+        for bed in bed_list:
+            print(bed)
+            tool = BedTool(bed)
+            tool.saveas()
+            if bed == bed_list[0]:
+                whole = tool
+            else:
+                whole = whole.cat(tool)
+                whole.saveas()
 
-    for bed in bed_list:
-        print(bed)
-        tool = BedTool(bed)
-        tool.saveas()
-        if bed == bed_list[0]:
-            whole = tool
-        else:
-            whole = whole.cat(tool)
-            whole.saveas()
+        whole_sorted = whole.sort()
+        whole_merged = whole_sorted.merge()
+        whole_merged.saveas()
 
-    whole_sorted = whole.sort()
-    whole_merged = whole_sorted.merge()
-    whole_merged.saveas()
-
-    remainder = whole_merged.subtract(whole_truth)
-    remainder.moveto(out_dir + 'remainder.bed')
-    missing_regions = whole_merged.subtract(whole_truth, A=True)
+        remainder = whole_merged.subtract(whole_truth)
+        remainder.moveto(out_dir + '/remainder.bed')
+        missing_regions = whole_merged.subtract(whole_truth, A=True)
+    except UnicodeDecodeError:
+        missing_regions = None
     return missing_regions
 
 def generate_bed_intersects(bed_prefix, directory):
@@ -89,7 +91,7 @@ def generate_bed_intersects(bed_prefix, directory):
     :rtype: Dictionary
     """
     print('Getting BED files.')
-    path = bed_prefix + "*"
+    path = bed_prefix + "*.bed"
     bed_files = glob.glob(path)
     print(bed_files)
 
@@ -149,7 +151,8 @@ def generate_bed_intersects(bed_prefix, directory):
 
     whole_bed = generate_whole_bed(truth_regions, bedtool_list, directory)
     missing_regions = generate_remainder(whole_bed, directory, bed_files)
-    missing_regions.moveto(directory + '/missing_regions.bed')
+    if missing_regions:
+        missing_regions.moveto(directory + '/missing_regions.bed')
 
     print('BED files produced correctly.')
     return bed_dict, whole_bed
@@ -290,7 +293,7 @@ def annotate_false_negs(folder, ref_sample, coverage_file):
     print(num_neg)
 
     variants = {'indels':[],'no_coverage':[],'evidence_of_alt':[],'false_neg':[]}
-
+    count=0
     if num_neg > 0:
         print('false negatives')
         for rec in false_negs.fetch():
@@ -300,6 +303,7 @@ def annotate_false_negs(folder, ref_sample, coverage_file):
             alt = rec.alleles[1]
             qual = rec.qual
             genotype = rec.samples[ref_sample]['GT']
+            count+=1
             if len(rec.alleles[0]) == 1 and len(rec.alleles[1]) == 1:
                 search = '\'' + rec.contig + '\s' + str(rec.pos - 1) + '\''
                 command = 'grep ' + search + ' ' + coverage_file
@@ -326,11 +330,11 @@ def annotate_false_negs(folder, ref_sample, coverage_file):
                     variant = {'chrom':chrom, 'pos':pos, 'ref':ref, 'alt':alt, 'QUAL':qual,
                                'GT':genotype, 'coverage':{'total':cov, 'ref':ref_cov, 'alt':alt_cov}}
 
-                    if cov == 0:
+                    if int(cov) == 0:
                         no_cov = variants['no_coverage']
                         no_cov.append(variant)
                         variants['no_coverage'] = no_cov
-                    elif alt_cov != 0:
+                    elif int(alt_cov) != 0:
                         ev_alt = variants['evidence_of_alt']
                         ev_alt.append(variant)
                         variants['evidence_of_alt'] = ev_alt
@@ -348,7 +352,7 @@ def annotate_false_negs(folder, ref_sample, coverage_file):
 
     else:
         print('no false negatives')
-
+    print("false_negatives=" + str(count))
     return variants
 
 def annotate_false_pos(folder, coverage_file, sample):
@@ -497,7 +501,7 @@ def check_genotype(folder, sample, ref_sample, coverage_file):
                     exit(1)
                 if line == '':
                     variant = {'chrom': chrom, 'pos': pos, 'ref': alleles[0], 'alt': alleles[1], 'QUAL': rec.qual,
-                               'GT': {sample: rec.samples[sample]['GT'], 'GIAB': giab_genotype},
+                               'GT': {"sample": rec.samples[sample]['GT'], 'GIAB': giab_genotype},
                                'vcf_depth': {'DP': total_depth, 'AD': allelic_depth},
                                'coverage':{'total':'no coverage information', 'ref':'N/A', 'alt':'N/A'}}
                 else:
@@ -507,12 +511,12 @@ def check_genotype(folder, sample, ref_sample, coverage_file):
                     ref_cov = fields[bases[rec.alleles[0]]]
                     alt_cov = fields[bases[rec.alleles[1]]]
                     variant = {'chrom':chrom, 'pos':pos, 'ref':alleles[0], 'alt':alleles[1], 'QUAL':rec.qual,
-                                    'GT':{sample:rec.samples[sample]['GT'], 'GIAB':giab_genotype},
+                                    'GT':{"sample":rec.samples[sample]['GT'], 'GIAB':giab_genotype},
                                     'vcf_depth':{'DP':total_depth, 'AD':allelic_depth},
                                     'coverage':{'total':cov, 'ref':ref_cov, 'alt':alt_cov}}
             else:
                 variant = {'chrom': chrom, 'pos': pos, 'ref': alleles[0], 'alt': alleles[1], 'QUAL': rec.qual,
-                           'GT': {sample: rec.samples[sample]['GT'], 'GIAB': giab_genotype},
+                           'GT': {"sample": rec.samples[sample]['GT'], 'GIAB': giab_genotype},
                            'vcf_depth': {'DP': total_depth, 'AD': allelic_depth},
                            'coverage': {'total': 'indel: no coverage could be obtained', 'ref': 'N/A', 'alt': 'N/A'}}
             variants.append(variant)
@@ -535,7 +539,7 @@ def remainder_size(bed_file):
     """
     print('Calculating remainder')
     print(bed_file)
-    original_bed = '/results/Analysis/MiSeq/MasterBED/' + os.path.basename(bed_file.replace('_truth_regions_1based', ''))
+    original_bed = '/results/Analysis/projects/GIAB/merged_fastqs/' + os.path.basename(bed_file.replace('_truth_regions_1based', ''))
     print(original_bed)
     truth_region_bed = bed_file.replace('_1based', '')
     print(truth_region_bed)
@@ -645,7 +649,8 @@ def bcftools_isec(file_prefix, decomposed_zipped, bed_dict, bam, reference_vcf, 
             false_negs_cov = len(false_negs_ann['no_coverage'])
             false_negs_ev_alt = len(false_negs_ann['evidence_of_alt'])
             false_neg_oth = len(false_negs_ann['false_neg'])
-            false_negs = false_neg_oth + false_negs_cov + false_negs_cov + false_negs_ev_alt + false_negs_indels
+            false_negs = false_neg_oth + false_negs_cov + false_negs_ev_alt + false_negs_indels
+            print("false neg total=" + str(false_negs))
             false_pos = len(false_pos_ann)
             num_mismatch = len(genotypes)
             true_positives = num_matching + num_mismatch
@@ -692,7 +697,7 @@ def bcftools_isec(file_prefix, decomposed_zipped, bed_dict, bam, reference_vcf, 
             total_bases = int(bed_dict[f]['length'])
             print(total_bases)
 
-            original_bed = f.replace('_truth_regions_1based', '')
+            original_bed = '/results/Analysis/projects/GIAB/merged_fastqs/' + os.path.basename(f).replace('_truth_regions_1based', '')
             print(original_bed)
 
             f = open(original_bed, 'r')

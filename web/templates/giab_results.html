@@ -129,9 +129,6 @@
                                 <th>Alt</th>
                                 <th>Genotype</th>
                                 <th>QUAL</th>
-                                <th>VCF Total Depth</th>
-                                <th>VCF Ref Depth</th>
-                                <th>VCF Alt Depth</th>
                                 <th>BAM Total Depth</th>
                                 <th>BAM Ref Depth</th>
                                 <th>BAM Alt Depth</th>
@@ -159,9 +156,6 @@
                                 <th>Alt</th>
                                 <th>Genotype</th>
                                 <th>QUAL</th>
-                                <th>VCF Total Depth</th>
-                                <th>VCF Ref Depth</th>
-                                <th>VCF Alt Depth</th>
                                 <th>BAM Total Depth</th>
                                 <th>BAM Ref Depth</th>
                                 <th>BAM Alt Depth</th>
@@ -189,9 +183,6 @@
                                 <th>Alt</th>
                                 <th>Genotype</th>
                                 <th>QUAL</th>
-                                <th>VCF Total Depth</th>
-                                <th>VCF Ref Depth</th>
-                                <th>VCF Alt Depth</th>
                                 <th>BAM Total Depth</th>
                                 <th>BAM Ref Depth</th>
                                 <th>BAM Alt Depth</th>
@@ -219,9 +210,6 @@
                                 <th>Alt</th>
                                 <th>Genotype</th>
                                 <th>QUAL</th>
-                                <th>VCF Total Depth</th>
-                                <th>VCF Ref Depth</th>
-                                <th>VCF Alt Depth</th>
                                 <th>BAM Total Depth</th>
                                 <th>BAM Ref Depth</th>
                                 <th>BAM Alt Depth</th>
@@ -252,9 +240,6 @@
                                 <th>GIAB Genotype</th>
                                 <th>VCF Genotype</th>
                                 <th>QUAL</th>
-                                <th>VCF Total Depth</th>
-                                <th>VCF Ref Depth</th>
-                                <th>VCF Alt Depth</th>
                                 <th>BAM Total Depth</th>
                                 <th>BAM Ref Depth</th>
                                 <th>BAM Alt Depth</th>
@@ -266,7 +251,7 @@
                                 <td>{{ fp["ref"] }}</td>
                                 <td>{{ fp["alt"] }}</td>
                                 <td>{{ fp["GT"]["GIAB"][0] }}/{{ fp["GT"]["GIAB"][1] }}</td>
-                                <td>{{ fp["GT"]["VCF"][0] }}/{{ fp["GT"]["VCF"][1] }}</td>
+                                <td>{{ fp["GT"]["sample"][0] }}/{{ fp["GT"]["sample"][1] }}</td>
                                 <td>{{ fp["QUAL"] }}</td>
                                 <td>{{ fp["vcf_depth"]["DP"] }}</td>
                                 {% if fp["vcf_depth"]["AD"] == "N/A" %}

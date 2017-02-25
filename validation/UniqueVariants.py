@@ -128,6 +128,44 @@ def generate_v_dict(variants):
 
     return v_dict
 
+def dict_from_v_list(var_list):
+    """
+    Creates dictionaries for each sample that ahs had Sanger confirms detailing concordant variants for use in count
+
+    :param var_list: filename for list of concordant variants
+    :return: dictionary of patients and corresponding variants
+    """
+    results = {}
+    f = open(var_list)
+    lines = [line.strip('\n').strip('\r') for line in f.readlines()]
+    f.close()
+
+    for line in lines:
+        if line.startswith("S number"):
+            continue
+        fields = line.split('\t')
+        sample = fields[0]
+        print(sample)
+        if sample in results.keys():
+            v_dict = results[sample]
+        else:
+            v_dict = {}
+        chrom = fields[1]
+        pos = fields[2]
+        ref = fields[3]
+        alt = fields[4]
+
+        key = chrom + ':' + pos + ':' + ref
+        if key in v_dict:
+            alts = v_dict[key]
+            alts.append(alt)
+            v_dict[key] = alts
+        else:
+            v_dict[key] = [alt, ]
+
+        results[sample] = v_dict
+    return results
+
 def variant_counts():
     """
     Compare two variant files for a number of patients to calculate the number of unique variants and amount of overlap.
@@ -138,7 +176,7 @@ def variant_counts():
 
     :param --files: Path to a file containing the paths to the variant files. Must be formatted Sample,MiSeq_file,HiSeq_file using commas as separators
     :type --files: String
-    :param --out: The path to the older for the output of the script
+    :param --out: The path to the folder for the output of the script
     :type --out: String
     :return: A number of json files are saved in the specified output directory: One containing the counts for each patient and the total, and one for each set of variants. The variant jsons include the basic information for each variant (chrom, pos, ref, alt).
     :rtype: JSON files
@@ -165,32 +203,134 @@ def variant_counts():
         fields = sample.split(',')
         s = fields[0]
         print(s)
-        miseq = [line.strip('\n') for line in open(fields[1], 'r').readlines()]
-        miseq_var = generate_v_dict(miseq)
-        hiseq = [line.strip('\n') for line in open(fields[2], 'r').readlines()]
-        hiseq_var = generate_v_dict(hiseq)
+        if s == "sanger_variants":
+            results = dict_from_v_list(fields[1])
+            print(results.keys())
+            for v in results.keys():
+                miseq_var = results[v]
+                hiseq_var = results[v]
 
-        sample_shared = 0
-        sample_miseq = 0
-        sample_hiseq = 0
+                sample_shared = 0
+                sample_miseq = 0
+                sample_hiseq = 0
 
-        for var in miseq_var.keys():
-            for alt in miseq_var[var]:
-                try:
-                    if alt in hiseq_var[var]:
-                        sample_shared += 1
-                        if var not in total_unique_shared:
-                            total_unique_shared[var] = {}
-                            total_unique_shared[var][alt] = 1
-                            count_unique_shared += 1
-                        elif alt not in total_unique_shared[var]:
-                            total_unique_shared[var][alt] = 1
-                            count_unique_shared += 1
+                for var in miseq_var.keys():
+                    for alt in miseq_var[var]:
+                        try:
+                            if alt in hiseq_var[var]:
+                                sample_shared += 1
+                                if var not in total_unique_shared:
+                                    total_unique_shared[var] = {}
+                                    total_unique_shared[var][alt] = 1
+                                    count_unique_shared += 1
+                                elif alt not in total_unique_shared[var]:
+                                    total_unique_shared[var][alt] = 1
+                                    count_unique_shared += 1
+                                else:
+                                    count = total_unique_shared[var][alt]
+                                    count += 1
+                                    total_unique_shared[var][alt] = count
+                            else:
+                                sample_miseq += 1
+                                if var not in total_unique_miseq:
+                                    total_unique_miseq[var] = {}
+                                    total_unique_miseq[var][alt] = 1
+                                    count_unique_miseq += 1
+                                elif alt not in total_unique_miseq[var]:
+                                    total_unique_miseq[var][alt] = 1
+                                    count_unique_miseq += 1
+                                else:
+                                    count = total_unique_miseq[var][alt]
+                                    count += 1
+                                    total_unique_miseq[var][alt] = count
+
+                        except KeyError:
+                            sample_miseq += 1
+                            if var not in total_unique_miseq:
+                                total_unique_miseq[var] = {}
+                                total_unique_miseq[var][alt] = 1
+                                count_unique_miseq += 1
+                            elif alt not in total_unique_miseq[var]:
+                                total_unique_miseq[var][alt] = 1
+                                count_unique_miseq += 1
+                            else:
+                                count = total_unique_miseq[var][alt]
+                                count += 1
+                                total_unique_miseq[var][alt] = count
+
+                for var in hiseq_var.keys():
+                    for alt in hiseq_var[var]:
+                        try:
+                            if alt in miseq_var[var]:
+                                pass
+                            else:
+                                sample_hiseq += 1
+                                if var not in total_unique_hiseq:
+                                    total_unique_hiseq[var] = {}
+                                    total_unique_hiseq[var][alt] = 1
+                                    count_unique_hiseq += 1
+                                elif alt not in total_unique_hiseq[var]:
+                                    total_unique_hiseq[var][alt] = 1
+                                    count_unique_hiseq += 1
+                                else:
+                                    count = total_unique_hiseq[var][alt]
+                                    count += 1
+                                    total_unique_hiseq[var][alt] = count
+                        except KeyError:
+                            sample_hiseq += 1
+                            if var not in total_unique_hiseq:
+                                total_unique_hiseq[var] = {}
+                                total_unique_hiseq[var][alt] = 1
+                                count_unique_hiseq += 1
+                            elif alt not in total_unique_hiseq[var]:
+                                total_unique_hiseq[var][alt] = 1
+                                count_unique_hiseq += 1
+                            else:
+                                count = total_unique_hiseq[var][alt]
+                                count += 1
+                                total_unique_hiseq[var][alt] = count
+                sample_breakdown[v] = {'shared': sample_shared, 'miseq': sample_miseq, 'hiseq': sample_hiseq}
+        else:
+            miseq = [line.strip('\n') for line in open(fields[1], 'r').readlines()]
+            miseq_var = generate_v_dict(miseq)
+            hiseq = [line.strip('\n') for line in open(fields[2], 'r').readlines()]
+            hiseq_var = generate_v_dict(hiseq)
+
+            sample_shared = 0
+            sample_miseq = 0
+            sample_hiseq = 0
+
+            for var in miseq_var.keys():
+                for alt in miseq_var[var]:
+                    try:
+                        if alt in hiseq_var[var]:
+                            sample_shared += 1
+                            if var not in total_unique_shared:
+                                total_unique_shared[var] = {}
+                                total_unique_shared[var][alt] = 1
+                                count_unique_shared += 1
+                            elif alt not in total_unique_shared[var]:
+                                total_unique_shared[var][alt] = 1
+                                count_unique_shared += 1
+                            else:
+                                count = total_unique_shared[var][alt]
+                                count += 1
+                                total_unique_shared[var][alt] = count
                         else:
-                            count = total_unique_shared[var][alt]
-                            count += 1
-                            total_unique_shared[var][alt] = count
-                    else:
+                            sample_miseq += 1
+                            if var not in total_unique_miseq:
+                                total_unique_miseq[var] = {}
+                                total_unique_miseq[var][alt] = 1
+                                count_unique_miseq += 1
+                            elif alt not in total_unique_miseq[var]:
+                                total_unique_miseq[var][alt] = 1
+                                count_unique_miseq += 1
+                            else:
+                                count = total_unique_miseq[var][alt]
+                                count += 1
+                                total_unique_miseq[var][alt] = count
+
+                    except KeyError:
                         sample_miseq += 1
                         if var not in total_unique_miseq:
                             total_unique_miseq[var] = {}
@@ -204,26 +344,25 @@ def variant_counts():
                             count += 1
                             total_unique_miseq[var][alt] = count
 
-                except KeyError:
-                    sample_miseq += 1
-                    if var not in total_unique_miseq:
-                        total_unique_miseq[var] = {}
-                        total_unique_miseq[var][alt] = 1
-                        count_unique_miseq += 1
-                    elif alt not in total_unique_miseq[var]:
-                        total_unique_miseq[var][alt] = 1
-                        count_unique_miseq += 1
-                    else:
-                        count = total_unique_miseq[var][alt]
-                        count += 1
-                        total_unique_miseq[var][alt] = count
-
-        for var in hiseq_var.keys():
-            for alt in hiseq_var[var]:
-                try:
-                    if alt in miseq_var[var]:
-                        pass
-                    else:
+            for var in hiseq_var.keys():
+                for alt in hiseq_var[var]:
+                    try:
+                        if alt in miseq_var[var]:
+                            pass
+                        else:
+                            sample_hiseq += 1
+                            if var not in total_unique_hiseq:
+                                total_unique_hiseq[var] = {}
+                                total_unique_hiseq[var][alt] = 1
+                                count_unique_hiseq += 1
+                            elif alt not in total_unique_hiseq[var]:
+                                total_unique_hiseq[var][alt] = 1
+                                count_unique_hiseq += 1
+                            else:
+                                count = total_unique_hiseq[var][alt]
+                                count += 1
+                                total_unique_hiseq[var][alt] = count
+                    except KeyError:
                         sample_hiseq += 1
                         if var not in total_unique_hiseq:
                             total_unique_hiseq[var] = {}
@@ -236,21 +375,8 @@ def variant_counts():
                             count = total_unique_hiseq[var][alt]
                             count += 1
                             total_unique_hiseq[var][alt] = count
-                except KeyError:
-                    sample_hiseq += 1
-                    if var not in total_unique_hiseq:
-                        total_unique_hiseq[var] = {}
-                        total_unique_hiseq[var][alt] = 1
-                        count_unique_hiseq += 1
-                    elif alt not in total_unique_hiseq[var]:
-                        total_unique_hiseq[var][alt] = 1
-                        count_unique_hiseq += 1
-                    else:
-                        count = total_unique_hiseq[var][alt]
-                        count += 1
-                        total_unique_hiseq[var][alt] = count
 
-        sample_breakdown[s] = {'shared':sample_shared,'miseq':sample_miseq, 'hiseq':sample_hiseq}
+            sample_breakdown[s] = {'shared':sample_shared,'miseq':sample_miseq, 'hiseq':sample_hiseq}
 
     sample_breakdown['total'] = {'shared':count_unique_shared, 'hiseq':count_unique_hiseq, 'miseq':count_unique_miseq}
 

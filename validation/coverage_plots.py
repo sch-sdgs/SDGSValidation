@@ -53,7 +53,8 @@ def generate_gene_dict(beds, output_folder):
     all_lines = []
 
     for bed in beds:
-        f = open('/results/Analysis/MiSeq/MasterBED/' + bed, 'r')
+        #todo change this back to path for MasterBED
+        f = open(bed, 'r')
         lines = [line.strip('\n') for line in f.readlines()]
         f.close()
 
@@ -122,7 +123,7 @@ def generate_bed_dict(beds):
     bed_dict = {}
     for bed in beds:
         # find the bed abbreviation from the file on the server to name the result files
-        command = "grep " + bed + " /results/Analysis/MiSeq/MasterBED/abbreviated_bed_names.txt | cut -f2"
+        command = "grep " + os.path.basename(bed) + " /results/Analysis/MiSeq/MasterBED/abbreviated_bed_names.txt | cut -f2"
         try:
             abv = subprocess.check_output(command, shell=True).replace('\n', '')
             print(abv)
@@ -130,8 +131,8 @@ def generate_bed_dict(beds):
                 print('No abv found for ' + bed)
                 abv = bed
             bed_dict[abv] = {'name':bed, 'regions':{}}
-
-            f = open('/results/Analysis/MiSeq/MasterBED/' + bed, 'r')
+            #todo change this back to MasterBED
+            f = open(bed, 'r')
             lines = [line.strip('\n') for line in f.readlines()]
             f.close()
 
@@ -223,14 +224,15 @@ def get_coverage_for_dict(coverage_input, bed_dict):
                 #list start<=i<end
                 for i in range(start, end):
                     try:
+                        #todo change 50 back to 30
                         cov = coverage[chrom][i]['cov']
                         coverage[chrom][i]['name'] = name
                         avg = sum(cov) / float(len(cov))
                         if avg < 18:
                             count_less_18 += 1
-                        elif 18<= avg < 30:
+                        elif 18<= avg < 50:
                             count_18_30 += 1
-                        elif 30 <= avg < 100:
+                        elif 50 <= avg < 100:
                             count_30_100 += 1
                         else:
                             count_more_100 += 1
@@ -364,11 +366,15 @@ def plot_region_coverage(panel_name, panel_dict, output_folder):
         width = 0.75
         tick_pos = [i + (width / 2.) for i in spacing]
         f, ax1 = plt.subplots(1, figsize=(0.2 * len(names) + 5, 10))
-
+        print(less_18)
+        print(between_18_30)
+        print(between_30_100)
+        print(more_100)
+        print(names)
         ax1.bar(spacing, less_18, width, color='r', label='Less than 18X')
-        ax1.bar(spacing, between_18_30, width, bottom=less_18, color='y', label='Between 18X and 30X')
+        ax1.bar(spacing, between_18_30, width, bottom=less_18, color='y', label='Between 18X and 50X')
         ax1.bar(spacing, between_30_100, width, bottom=[i + j for i, j in zip(less_18, between_18_30)],
-                color='g', label='Between 30X and 100X')
+                color='g', label='Between 50X and 100X')
         ax1.bar(spacing, more_100, width,
                 bottom=[i + j + k for i, j, k in zip(less_18, between_18_30, between_30_100)], color='0.6',
                 label='Over 100X')
@@ -457,7 +463,7 @@ def generate_gene_plots(gene_dict, coverage, output_folder):
                             exon_split = region_name.split('_')
                         exon = ''
                         for s in exon_split:
-                            if 'exon' in s or 'EXON' in s:
+                            if 'exon' in s or 'EXON' in s or 'Exon' in s or 'Ex' in s:
                                 exon = s
                         intron_number += 1
                         cov_mean = numpy.mean(cov)
@@ -499,7 +505,7 @@ def generate_gene_plots(gene_dict, coverage, output_folder):
                                   transform=subplots.transAxes)
                 else:
                     reverse = False
-                    if int(plot_list[0]['title'].replace('Exon', '').replace('exon', '').replace('EXON', '')) > int(plot_list[1]['title'].replace('Exon', '').replace('exon', '').replace('EXON', '')):
+                    if int(plot_list[0]['title'].replace('Exon', '').replace('exon', '').replace('EXON', '').replace('Ex', '')) > int(plot_list[1]['title'].replace('Exon', '').replace('exon', '').replace('EXON', '').replace('Ex', '')):
                         reverse = True
                     i = 0
                     for ax in subplots.flatten():
@@ -533,12 +539,17 @@ def generate_coverage(whole_bed, bam_list, output_folder):
     """
     coverage_list = []
     for bam in bam_list:
-        sample_split = os.path.basename(bam).split('_')[0].split('-')
-        sample = sample_split[1] + '-' + sample_split[2]
+        if '-' in os.path.basename(bam):
+            sample_split = os.path.basename(bam).split('_')[0].split('-')
+            sample = sample_split[1] + '-' + sample_split[2]
+        else:
+            sample_split = os.path.basename(bam).split('_')
+            sample = sample_split[0] + '_' + sample_split[1]
         print(sample)
         outfile = output_folder + sample + '_coverage.txt'
-        get_coverage(whole_bed, outfile, sample, bam)
-        coverage_list.append(outfile.replace('.txt','.bed.tmp'))
+        coverage_list.append(outfile.replace('.txt', '.bed.tmp'))
+        if not os.path.exists(outfile.replace('.txt', '.bed.tmp')):
+            get_coverage(whole_bed, outfile, sample, bam)
     return coverage_list
 
 def main():

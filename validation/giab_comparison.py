@@ -159,11 +159,11 @@ def generate_bed_intersects(bed_prefix, directory):
 
 def prepare_vcf(vcf):
     """
-    Vcf must be decomposed, normalised and zipped and indexed before it can be used with bcftools
+    VCF must be decomposed, normalised and zipped and indexed before it can be used with bcftools
 
-    :param vcf: The file path to the original vcf
+    :param vcf: The file path to the original VCF
     :type vcf: String
-    :return: File path to the decomposed and zipped vcf
+    :return: File path to the decomposed and zipped VCF
     :rtype: String
     """
     print('Preparing vcf.')
@@ -278,6 +278,13 @@ def annotate_false_negs(folder, ref_sample, coverage_file):
     Get information for any false negative results.
 
     Returns basic variant info plus quality, genotype, coverage (total, ref base and alt base if appropriate)
+
+    False Negatives are split into categories to aid final comparison:
+
+    * Zero coverage - No reads present
+    * Evidence of alternate allele - Coverage or quality too low for variant call
+    * Indels - Coverage is more difficult to obtain in these cases; currently they must be investigated by hand
+    * All other false negatives - In these cases there are reads present and no evidence of the alternate allele
 
     :param folder: Folder containing output from bcftools isec
     :type folder: String
@@ -570,12 +577,12 @@ def remainder_size(bed_file):
 
 def bcftools_isec(file_prefix, decomposed_zipped, bed_dict, bam, reference_vcf, reference_sample, whole_bed, out_dir):
     """
-    Intersect the two vcfs and limit to the truth regions and panel BED file.
+    Intersect the two VCFs and limit to the truth regions and panel BED file.
 
     The method counts the number of false positives and false negatives and checks the genotype of all of the matching
     variants.
 
-    Any false negatives are investigated in terms of depth
+    Depth of false negatives are investigated
 
     :param file_prefix: Prefix given to all files during the NGS pipeline (i.e. worklist-patient)
     :type file_prefix: String

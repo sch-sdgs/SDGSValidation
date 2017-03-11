@@ -400,7 +400,8 @@ def variant_counts():
     print >> f, j
     f.close()
 
-variant_counts()
+if __name__ == "__main__":
+    variant_counts()
 
 
 

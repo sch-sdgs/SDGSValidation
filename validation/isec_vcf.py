@@ -4,33 +4,45 @@ import os
 import subprocess
 import json
 from pybedtools import BedTool
+from math import sqrt
 
-def main():
+def isec_vcf(out=None,v1=None,s1=None,v1_prep=None,v2=None,s2=None,bed=None,bam=None):
     parser = argparse.ArgumentParser()
-    parser.add_argument('-o', help='Location of output', required=True)
-    parser.add_argument('-v1', help='VCF 1', required=True)
-    parser.add_argument('-s1', help='Sample name (as appears in vcf 1)', required=True)
-    parser.add_argument('-v2', help='VCF 2', required=True)
+    parser.add_argument('-o', help='Location of output')
+    parser.add_argument('-v1', help='VCF 1')
+    parser.add_argument('-s1', help='Sample name (as appears in vcf 1)')
+    parser.add_argument('-v1_prep', help='Does the reference VCF need to be prepared', default=True)
+    parser.add_argument('-v2', help='VCF 2')
     parser.add_argument('-s2', help='Sample name (as appears in vcf 2), if omitted it will be the same as s1', default=None)
-    parser.add_argument('-b', help='BED file to filter to', required=True)
-    parser.add_argument('-bam', help='BAM file for vcf 2 sample to generate coverage stats from', required=True)
+    parser.add_argument('-b', help='BED file to filter to')
+    parser.add_argument('-bam', help='BAM file for vcf 2 sample to generate coverage stats from')
 
     args = parser.parse_args()
 
-    v1 = args.v1
-    s1 = args.s1
-    v2 = args.v2
-    if not args.s2:
+    if not v1:
+        v1 = args.v1
+    if not s1:
+        s1 = args.s1
+    if not v2:
+        v2 = args.v2
+    if not s2 and not args.s2:
         s2 = s1
-    else:
+    elif not s2:
         s2 = args.s2
-    bed = args.b
-    bam = args.bam
+    if not bed:
+        bed = args.b
+    if not bam:
+        bam = args.bam
+    if not v1_prep:
+        v1_prep = args.v1_prep
 
-    if args.o.endswith('/'):
-        out_dir = os.path.dirname(args.o)
+    if not out:
+        out = args.o
+
+    if out.endswith('/'):
+        out_dir = os.path.dirname(out)
     else:
-        out_dir = args.o
+        out_dir = out
 
     if not os.path.exists(out_dir):
         print("Output directory does not exist")
@@ -56,10 +68,11 @@ def main():
     print(no_header)
 
     #prepare vcfs
-    if os.path.exists(v1.replace('.vcf', '.decomposed.normalised.vcf.gz')):
-        v1_decomposed = v1.replace('.vcf', '.decomposed.normalised.vcf.gz')
-    else:
+    if v1_prep != "False":
         v1_decomposed = prepare_vcf(v1)
+    else:
+        print('no prep')
+        v1_decomposed = v1
     if os.path.exists(v2.replace('.vcf', '.decomposed.normalised.vcf.gz')):
         v2_decomposed = v2.replace('.vcf', '.decomposed.normalised.vcf.gz')
     else:
@@ -89,10 +102,35 @@ def main():
     false_negs = false_neg_oth + false_negs_cov + false_negs_cov + false_negs_ev_alt + false_negs_indels
     false_pos = len(false_pos_ann)
     num_mismatch = len(mismatching_genotype)
+    true_positives = matching + num_mismatch
+
+    try:
+        sensitivity = matching / float((true_positives + false_pos)) * 100
+    except ZeroDivisionError:
+        sensitivity = 0.0
+
+    f = open(coverage, 'r')
+    lines = f.readlines()
+    total_bases = len(lines) -1
+    f.close()
+    true_negatives = total_bases - (false_negs + false_pos + num_mismatch + matching)
+
+    total_pos = true_positives + false_pos
+    actual_pos = true_positives + false_negs
+    total_negs = true_negatives + false_negs
+    actual_negs = true_negatives + false_pos
+
+    if total_pos == 0 or actual_pos == 0 or total_negs == 0 or actual_negs == 0:
+        denominator = 1
+    else:
+        denominator = total_pos * total_negs * actual_pos * actual_negs
+
+    mcc = (true_positives * true_negatives - false_pos * false_negs) / \
+          sqrt(denominator)
 
     out = {'result':{'false_negative': false_negs_ann, 'false_positive': false_pos_ann,
            'mismatching_genotype': mismatching_genotype, 'matching_variants': matching,
-           'num_true_negatives': "Not calculated", 'sensitivity': "Not calculated", 'MCC': "Not calculated",
+           'num_true_negatives': true_negatives, 'sensitivity': sensitivity, 'MCC': mcc,
            'small_panel_remainder_length': "Not calculated", 'percent_small_panel_covered': "Not calculated",
            'num_false_positive': false_pos, 'num_false_negative': {'indel': false_negs_indels,
                                                                    'no_coverage': false_negs_cov,
@@ -107,4 +145,4 @@ def main():
     f.close()
 
 if __name__ == '__main__':
-    main()
+    isec_vcf()

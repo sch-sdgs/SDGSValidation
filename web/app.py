@@ -125,7 +125,7 @@ def giab_summary():
         f = open(filepath, 'r')
         j = json.load(f)
         f.close()
-        return render_template('giab_summary.html', panels=j, filepath=filepath)
+        return render_template('giab_summary.html', panels=j, order=sorted(j.keys()), filepath=filepath)
 
 if __name__ == "__main__":
     app.run(host= '10.182.131.21',threaded=True,port=5010)

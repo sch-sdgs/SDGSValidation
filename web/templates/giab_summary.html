@@ -27,7 +27,7 @@
                             <th>Number of bases outside ROI</th>
 
                         </tr>
-                        {% for panel in panels.keys() %}
+                        {% for panel in order %}
                         <tr>
                             <th><a href="{{ url_for('giab_results') }}?panel={{ panel }}&filepath={{ filepath }}">{{ panel }}</a></th>
                             <td>{{ panels[panel]["sensitivity"] }}</td>

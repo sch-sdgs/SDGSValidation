@@ -101,7 +101,7 @@ def generate_bed_intersects(bed_prefix, directory):
 
     bed_dict = {}
     bedtool_list = []
-    truth_regions = BedTool('/results/Analysis/projects/HeredCancer/CysticValidation/HuRef/truth_regions.bed')
+    truth_regions = BedTool('/results/Analysis/HiSeq_validation/giab/giab-NA12878/truth_regions.bed')
 
     print('Generating truth regions.')
     for f in bed_files:
@@ -227,14 +227,14 @@ def get_coverage(whole_bed, directory, sample, bam):
     else:
         out = directory + '/whole_bed_coverage.txt'
     print(whole_bed)
-    command = '/results/Pipeline/program/sambamba/build/sambamba depth base --min-coverage=0 -q29 -m -L ' + whole_bed + \
+    command = '/results/Pipeline/program/sambamba-0.6.3/build/sambamba depth base --min-coverage=0 -q29 -m -L ' + whole_bed + \
               ' ' + bam + ' > ' + out + '.tmp'
     print(command)
     try:
         subprocess.check_call(command, shell=True)
     except subprocess.CalledProcessError as e:
         print('Error executing command:' + str(e.returncode))
-        exit(1)
+        return "no coverage"
     print('Sambamba complete.')
     #issue with sambamba that leaves out regions that have 0 coverage - intersect regions to find missing and add
     # them to the file at coverage 0
@@ -253,7 +253,7 @@ def get_coverage(whole_bed, directory, sample, bam):
     whole_bedtool = BedTool(whole_bed)
     print('Intersecting')
     missing_regions = whole_bedtool.intersect(coverage_bed, v=True)
-    missing_file = directory + 'regions_missing'
+    missing_file = directory + '/regions_missing'
     missing_regions.moveto(missing_file)
     print('Generating file')
     command = '''while read i; do start=`echo "$i"|cut -f2`; end=`echo "$i"|cut -f3`; chr=`echo "$i"|cut -f1`; end_true=`echo "${end} - 1" | bc`; for j in $(seq $start $end_true); do new_end=`echo -e "${j} + 1" | bc`; echo -e "$chr\\t${j}\\t0\\t0\\t0\\t0\\t0\\t0\\t0\\t''' + sample + '''";done;done < ''' + missing_file + '> ' + directory + '/to_add'
@@ -300,16 +300,22 @@ def annotate_false_negs(folder, ref_sample, coverage_file):
     print(num_neg)
 
     variants = {'indels':[],'no_coverage':[],'evidence_of_alt':[],'false_neg':[]}
+    v_list = []
     count=0
     if num_neg > 0:
         print('false negatives')
         for rec in false_negs.fetch():
+            print(rec.samples)
             chrom = rec.contig
             pos = int(rec.pos)
             ref = rec.alleles[0]
             alt = rec.alleles[1]
             qual = rec.qual
             genotype = rec.samples[ref_sample]['GT']
+            if [chrom, pos, ref, alt] in v_list:
+                print("duplicate")
+                continue
+                
             count+=1
             if len(rec.alleles[0]) == 1 and len(rec.alleles[1]) == 1:
                 search = '\'' + rec.contig + '\s' + str(rec.pos - 1) + '\''
@@ -382,6 +388,7 @@ def annotate_false_pos(folder, coverage_file, sample):
     print(num_pos)
 
     variants = []
+    v_list = []
 
     if num_pos > 0:
         print('false positives')
@@ -392,6 +399,11 @@ def annotate_false_pos(folder, coverage_file, sample):
             alt = rec.alleles[1]
             qual = rec.qual
             genotype = rec.samples[sample]['GT']
+
+            if [chrom, pos, ref, alt] in v_list:
+                print("duplicate")
+                continue
+
             if 'AD' in rec.samples[sample].keys():
                 allelic_depth = rec.samples[sample]['AD']
             elif 'NV' in rec.samples[sample].keys():
@@ -546,7 +558,7 @@ def remainder_size(bed_file):
     """
     print('Calculating remainder')
     print(bed_file)
-    original_bed = '/results/Analysis/projects/GIAB/merged_fastqs/' + os.path.basename(bed_file.replace('_truth_regions_1based', ''))
+    original_bed = '/results/Analysis/MiSeq/MasterBED/' + os.path.basename(bed_file.replace('_truth_regions_1based', ''))
     print(original_bed)
     truth_region_bed = bed_file.replace('_1based', '')
     print(truth_region_bed)
@@ -575,7 +587,7 @@ def remainder_size(bed_file):
 
     return total_length
 
-def bcftools_isec(file_prefix, decomposed_zipped, bed_dict, bam, reference_vcf, reference_sample, whole_bed, out_dir):
+def bcftools_isec(sample, decomposed_zipped, bed_dict, bam, reference_vcf, reference_sample, whole_bed, out_dir):
     """
     Intersect the two VCFs and limit to the truth regions and panel BED file.
 
@@ -584,17 +596,17 @@ def bcftools_isec(file_prefix, decomposed_zipped, bed_dict, bam, reference_vcf, 
 
     Depth of false negatives are investigated
 
-    :param file_prefix: Prefix given to all files during the NGS pipeline (i.e. worklist-patient)
-    :type file_prefix: String
-    :param decomposed_zipped: File path for the decomposed and zipped vcf
+    :param sample: Sample name as it appears in the VCF
+    :type sample: String
+    :param decomposed_zipped: File path for the decomposed and zipped VCF
     :type decomposed_zipped: String
     :param bed_dict: Dictionary containing the abbreviations for each of the BED files - to be used as folder names
     :type bed_dict: Dictionary
     :param bam: Path to BAM file to be used in coverage calculation
     :type bam: String
-    :param reference_vcf: Path to the reference genome vcf
+    :param reference_vcf: Path to the reference genome VCF
     :type reference_vcf: String
-    :param reference_sample: Identifier in reference sample vcf
+    :param reference_sample: Identifier in reference sample VCF
     :type reference_sample: String
     :param whole_bed: Path to combined BED file
     :type whole_bed: String
@@ -604,8 +616,6 @@ def bcftools_isec(file_prefix, decomposed_zipped, bed_dict, bam, reference_vcf, 
     :rtype: Dictionary
     """
     print('Comparing vcfs.')
-    sample_split = file_prefix.split('-')
-    sample = sample_split[1] + '-' + sample_split[2]
 
     results = out_dir + '/giab_results'
     try:
@@ -648,6 +658,7 @@ def bcftools_isec(file_prefix, decomposed_zipped, bed_dict, bam, reference_vcf, 
 
             print('Checking for false calls.')
             false_negs_ann = annotate_false_negs(folder, reference_sample, coverage_file)
+            print(sample)
             false_pos_ann = annotate_false_pos(folder, coverage_file, sample)
             print('Checking genotype for shared calls.')
             num_matching, genotypes = check_genotype(folder, sample, reference_sample, coverage_file)
@@ -670,7 +681,7 @@ def bcftools_isec(file_prefix, decomposed_zipped, bed_dict, bam, reference_vcf, 
                 exit(1)
 
             try:
-                sensitivity = (num_matching + num_mismatch) / float((true_positives + false_pos)) * 100
+                sensitivity = (num_matching + num_mismatch) / float((true_positives + false_negs)) * 100
             except ZeroDivisionError:
                 sensitivity = 0.0
 
@@ -704,7 +715,7 @@ def bcftools_isec(file_prefix, decomposed_zipped, bed_dict, bam, reference_vcf, 
             total_bases = int(bed_dict[f]['length'])
             print(total_bases)
 
-            original_bed = '/results/Analysis/projects/GIAB/merged_fastqs/' + os.path.basename(f).replace('_truth_regions_1based', '')
+            original_bed = '/results/Analysis/MiSeq/MasterBED/' + os.path.basename(f).replace('_truth_regions_1based', '')
             print(original_bed)
 
             f = open(original_bed, 'r')
@@ -739,27 +750,48 @@ def bcftools_isec(file_prefix, decomposed_zipped, bed_dict, bam, reference_vcf, 
     return all_results
 
 
-def main():
+def giab_comp(out=None,sample=None,bed=None,bam=None,v=None,rv=None,rs=None):
     parser = argparse.ArgumentParser()
-    parser.add_argument('-o', help='Location of output', required=True)
-    parser.add_argument('-p', help='Prefix given to all results files (i.e. worklist-patient)', required=True)
-    parser.add_argument('-b', help='Prefix associated with panel BED files (i.e. NGD_)', required=True)
-    parser.add_argument('-bam', help='BAM file for run', required=True)
-    parser.add_argument('-v', help='VCF to be compared', required=True)
+    parser.add_argument('-o', help='Location of output')
+    parser.add_argument('-p', help='Sample name as it appears in the VCF')
+    parser.add_argument('-b', help='Prefix associated with panel BED files (i.e. NGD_)')
+    parser.add_argument('-bam', help='BAM file for run')
+    parser.add_argument('-v', help='VCF to be compared')
     parser.add_argument('-rv', help='Path to reference genome vcf', default='/results/Analysis/HiSeq_validation/giab/giab-NA12878/truth_small_variants.decomposed.normalised.vcf.gz')
     parser.add_argument('-rs', help='Identifier used in reference vcf', default='INTEGRATION')
-
+    #todo add truth regions argument for huref
     args = parser.parse_args()
 
-    directory=args.o
+    if not out:
+        directory = args.o
+    else:
+        directory = out
     if directory.endswith('/'):
         directory = os.path.dirname(directory)
-    vcf = args.v
-    file_prefix=args.p
-    bed_prefix=args.b
-    bam = args.bam
-    reference_vcf = args.rv
-    reference_sample = args.rs
+
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
+    if not v:
+        vcf = args.v
+    else:
+        vcf = v
+    if not sample:
+        sample = args.p
+    if not bed:
+        bed_prefix = args.b
+    else:
+        bed_prefix = bed
+    if not bam:
+        bam = args.bam
+    if not rv:
+        reference_vcf = args.rv
+    else:
+        reference_vcf = rv
+    if not rs:
+        reference_sample = args.rs
+    else:
+        reference_sample = rs
 
     command = 'export PATH=${PATH}:/results/Pipeline/program/bedtools-2.17.0/bin'
     print(command)
@@ -774,7 +806,7 @@ def main():
 
     decomposed_zipped = prepare_vcf(vcf)
 
-    results = bcftools_isec(file_prefix, decomposed_zipped, bed_dict, bam, reference_vcf, reference_sample, whole_bed, directory)
+    results = bcftools_isec(sample, decomposed_zipped, bed_dict, bam, reference_vcf, reference_sample, whole_bed, directory)
 
     f = open(directory+'/giab_summary.txt', 'w')
     j = json.dumps(results, indent=4)
@@ -790,4 +822,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    giab_comp()

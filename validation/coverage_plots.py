@@ -54,7 +54,7 @@ def generate_gene_dict(beds, output_folder):
 
     for bed in beds:
         #todo change this back to path for MasterBED
-        f = open(bed, 'r')
+        f = open('/results/Analysis/MiSeq/MasterBED/' + bed, 'r')
         lines = [line.strip('\n') for line in f.readlines()]
         f.close()
 
@@ -65,7 +65,7 @@ def generate_gene_dict(beds, output_folder):
                 all_lines.append(line)
 
     raw_regions = '\n'.join(all_lines)
-    f = open ('/home/bioinfo/Natalie/Validation/refactor_test/raw_regions.bed', 'w')
+    f = open (output_folder + 'raw_regions.bed', 'w')
     f.write(raw_regions)
     f.close()
 
@@ -74,14 +74,14 @@ def generate_gene_dict(beds, output_folder):
     whole_merged = whole_sorted.merge(nms=True)
     whole_merged.saveas(output_regions)
 
-    command = 'python /results/Pipeline/SDGSPipeline/scripts/fill_bed.py --bed ' + output_regions + ' --out ' + output_genes
-
-    try:
-        subprocess.check_output(command, shell=True)
-    except subprocess.CalledProcessError as e:
-        print(command)
-        print('Error executing command: ' + str(e.returncode))
-        exit(1)
+    # command = 'python /results/Pipeline/SDGSPipeline/scripts/fill_bed.py --bed ' + output_regions + ' --out ' + output_genes
+    #
+    # try:
+    #     subprocess.check_output(command, shell=True)
+    # except subprocess.CalledProcessError as e:
+    #     print(command)
+    #     print('Error executing command: ' + str(e.returncode))
+    #     exit(1)
 
     f = open(output_genes)
     lines = [line.strip('\n') for line in f.readlines()]
@@ -132,7 +132,7 @@ def generate_bed_dict(beds):
                 abv = bed
             bed_dict[abv] = {'name':bed, 'regions':{}}
             #todo change this back to MasterBED
-            f = open(bed, 'r')
+            f = open('/results/Analysis/MiSeq/MasterBED/' + bed, 'r')
             lines = [line.strip('\n') for line in f.readlines()]
             f.close()
 
@@ -230,7 +230,7 @@ def get_coverage_for_dict(coverage_input, bed_dict):
                         avg = sum(cov) / float(len(cov))
                         if avg < 18:
                             count_less_18 += 1
-                        elif 18<= avg < 50:
+                        elif 18<= avg < 30:
                             count_18_30 += 1
                         elif 50 <= avg < 100:
                             count_30_100 += 1
@@ -297,7 +297,13 @@ def plot_region_coverage(panel_name, panel_dict, output_folder):
     for chrom in chroms:
         try:#chromosome may not be in the panel
             for name in regions[chrom].keys():
-                names.append(name)
+                name_fields = name.split('_')
+                print(name_fields)
+                if len(name_fields) > 3:
+                    short_name = name_fields[0] + '-' + name_fields[1] + '-' + name_fields[2] + '-' + name_fields[3]
+                else:
+                    short_name = name
+                names.append(short_name)
                 less_18.append(regions[chrom][name]['p_less_18'])
                 between_18_30.append(regions[chrom][name]['p_18_30'])
                 between_30_100.append(regions[chrom][name]['p_30_100'])
@@ -331,13 +337,10 @@ def plot_region_coverage(panel_name, panel_dict, output_folder):
                 d = sub_more_100[plot_no]
                 # extend the array to make 70
                 zeros = [0] * (70 - len(sub_less_18[plot_no]))
-                print(len(a))
-                print(zeros)
                 a = numpy.append(a, zeros)
                 b = numpy.append(b, zeros)
                 c = numpy.append(c, zeros)
                 d = numpy.append(d, zeros)
-                print(len(a))
             else:
                 a = sub_less_18[plot_no]
                 b = sub_18_30[plot_no]
@@ -366,11 +369,6 @@ def plot_region_coverage(panel_name, panel_dict, output_folder):
         width = 0.75
         tick_pos = [i + (width / 2.) for i in spacing]
         f, ax1 = plt.subplots(1, figsize=(0.2 * len(names) + 5, 10))
-        print(less_18)
-        print(between_18_30)
-        print(between_30_100)
-        print(more_100)
-        print(names)
         ax1.bar(spacing, less_18, width, color='r', label='Less than 18X')
         ax1.bar(spacing, between_18_30, width, bottom=less_18, color='y', label='Between 18X and 50X')
         ax1.bar(spacing, between_30_100, width, bottom=[i + j for i, j in zip(less_18, between_18_30)],
@@ -378,7 +376,6 @@ def plot_region_coverage(panel_name, panel_dict, output_folder):
         ax1.bar(spacing, more_100, width,
                 bottom=[i + j + k for i, j, k in zip(less_18, between_18_30, between_30_100)], color='0.6',
                 label='Over 100X')
-        print(tick_pos)
         ax1.set_xlim([min(tick_pos) - width, max(tick_pos) + width])
         plt.title(panel_name)
         plt.xticks(tick_pos, names, rotation='vertical')
@@ -441,7 +438,6 @@ def generate_gene_plots(gene_dict, coverage, output_folder):
                         cov = coverage[chrom][i]['cov']
 
                         if new_plot:
-                            print('plot added')
                             region_max = numpy.array(maximums)
                             region_min = numpy.array(minimums)
                             region_avg = numpy.array(avg)
@@ -466,12 +462,7 @@ def generate_gene_plots(gene_dict, coverage, output_folder):
                             if 'exon' in s or 'EXON' in s or 'Exon' in s or 'Ex' in s:
                                 exon = s
                         intron_number += 1
-                        cov_mean = numpy.mean(cov)
-                        cov_max = max(cov)
-                        cov_min = min(cov)
-                        maximums.append(cov_max)
-                        minimums.append(cov_min)
-                        avg.append(cov_mean)
+
                         x.append(index)
                         index += 1
                     except KeyError:
@@ -479,7 +470,6 @@ def generate_gene_plots(gene_dict, coverage, output_folder):
                             new_plot = True
 
                 if new_plot:
-                    print('plot added')
                     region_max = numpy.array(maximums)
                     region_min = numpy.array(minimums)
                     region_avg = numpy.array(avg)
@@ -494,19 +484,23 @@ def generate_gene_plots(gene_dict, coverage, output_folder):
                     f, subplots = plt.subplots(row_number, 5, sharey='all')
                     f.set_size_inches(30, 6 * row_number)
                 else:
-                    print(plot_number)
                     f, subplots = plt.subplots(1, plot_number, sharey='all')
                     f.set_size_inches(30, 6)
                 f.text(0.001, 0.5, 'Coverage', verticalalignment='center', rotation='vertical')
                 if len(plot_list.keys()) == 1:
                     p = plot_list[0]
                     subplots.plot(p['x'], p['max'], 'go', p['x'], p['avg'], 'ro', p['x'], p['min'], 'bo')
+                    plt.axhline(y=30)
                     subplots.text(0.01, 0.99, p['title'], horizontalalignment='right', verticalalignment='top',
                                   transform=subplots.transAxes)
                 else:
                     reverse = False
-                    if int(plot_list[0]['title'].replace('Exon', '').replace('exon', '').replace('EXON', '').replace('Ex', '')) > int(plot_list[1]['title'].replace('Exon', '').replace('exon', '').replace('EXON', '').replace('Ex', '')):
-                        reverse = True
+                    try:
+                        if int(plot_list[0]['title'].replace('Exon', '').replace('exon', '').replace('EXON', '').replace('Ex', '')) > int(plot_list[1]['title'].replace('Exon', '').replace('exon', '').replace('EXON', '').replace('Ex', '')):
+                            reverse = True
+                    except ValueError:
+                        pass
+
                     i = 0
                     for ax in subplots.flatten():
                         if reverse:
@@ -516,6 +510,7 @@ def generate_gene_plots(gene_dict, coverage, output_folder):
                         try:
                             p = plot_list[index]
                             ax.plot(p['x'], p['max'], 'go', p['x'], p['avg'], 'ro', p['x'], p['min'], 'bo')
+                            ax.axhline(y=30)
                             ax.text(1.0, 0.99, p['title'], horizontalalignment='right', verticalalignment='top',
                                     transform=ax.transAxes)
                             ax.set_aspect('auto')
@@ -539,7 +534,10 @@ def generate_coverage(whole_bed, bam_list, output_folder):
     """
     coverage_list = []
     for bam in bam_list:
+        if bam == '':
+            continue
         if '-' in os.path.basename(bam):
+            print(bam)
             sample_split = os.path.basename(bam).split('_')[0].split('-')
             sample = sample_split[1] + '-' + sample_split[2]
         else:
@@ -547,9 +545,12 @@ def generate_coverage(whole_bed, bam_list, output_folder):
             sample = sample_split[0] + '_' + sample_split[1]
         print(sample)
         outfile = output_folder + sample + '_coverage.txt'
-        coverage_list.append(outfile.replace('.txt', '.bed.tmp'))
-        if not os.path.exists(outfile.replace('.txt', '.bed.tmp')):
-            get_coverage(whole_bed, outfile, sample, bam)
+        if os.path.exists(outfile):
+            coverage_list.append(outfile.replace('.txt', '.bed.tmp'))
+        elif not os.path.exists(outfile.replace('.txt', '.bed.tmp')):
+            complete = get_coverage(whole_bed, outfile, sample, bam)
+            if complete != "no coverage":
+                coverage_list.append(outfile.replace('.txt', '.bed.tmp'))
     return coverage_list
 
 def main():
@@ -570,7 +571,8 @@ def main():
 
     args = parser.parse_args()
 
-    bam_input = args.bams.split(',')
+    f = open(args.bams, 'r')
+    bam_input = [line.strip() for line in f.readlines()]
     beds = args.b.split(',')
     if args.o.endswith('/'):
         output_folder = args.o

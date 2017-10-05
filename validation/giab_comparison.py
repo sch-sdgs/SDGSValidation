@@ -79,7 +79,7 @@ def generate_remainder(whole_bed, out_dir, bed_list):
         missing_regions = None
     return missing_regions
 
-def generate_bed_intersects(bed_prefix, directory):
+def generate_bed_intersects(bed_prefix, directory, truth_bed, abv_names):
     """
     Creates the intersected BED file for the broad panel and each sub panel associated with the given abbreviation
 
@@ -101,7 +101,7 @@ def generate_bed_intersects(bed_prefix, directory):
 
     bed_dict = {}
     bedtool_list = []
-    truth_regions = BedTool('/results/Analysis/HiSeq_validation/giab/giab-NA12878/truth_regions.bed')
+    truth_regions = BedTool(truth_bed)
 
     print('Generating truth regions.')
     for f in bed_files:
@@ -134,7 +134,7 @@ def generate_bed_intersects(bed_prefix, directory):
             exit(1)
 
         #find the bed abbreviation from the file on the server to name the result files
-        command_grep = "grep " + name + " /results/Analysis/MiSeq/MasterBED/abbreviated_bed_names.txt | cut -f2"
+        command_grep = "grep " + name + " " + abv_names +" | cut -f2"
         command_length = "awk '{SUM += $3-$2} END {print SUM}' " + truth_regions_panel
         try:
             abv = subprocess.check_output(command_grep, shell=True)
@@ -157,7 +157,7 @@ def generate_bed_intersects(bed_prefix, directory):
     print('BED files produced correctly.')
     return bed_dict, whole_bed
 
-def prepare_vcf(vcf):
+def prepare_vcf(vcf, reference):
     """
     VCF must be decomposed, normalised and zipped and indexed before it can be used with bcftools
 
@@ -172,15 +172,15 @@ def prepare_vcf(vcf):
     normalised_zipped = normalised + '.gz'
 
     try:
-        command = '/results/Pipeline/program/vt/vt decompose ' +  vcf + ' -o ' + decomposed
+        command = 'vt decompose ' +  vcf + ' -o ' + decomposed
         subprocess.check_call(command, shell=True)
     except subprocess.CalledProcessError as e:
         print('Error executing command:' + str(e.returncode))
         exit(1)
 
     try:
-        command = '/results/Pipeline/program/vt/vt normalize ' + decomposed + ' -r ' + \
-                  '/results/Pipeline/program/GATK_resource_bundle/ucsc.hg19.nohap.masked.fasta -o ' + normalised
+        command = 'vt normalize ' + decomposed + ' -r ' + reference + \
+                  ' -o ' + normalised
         subprocess.check_call(command, shell=True)
     except subprocess.CalledProcessError as e:
         print('Error executing command:' + str(e.returncode))
@@ -543,7 +543,7 @@ def check_genotype(folder, sample, ref_sample, coverage_file):
 
     return matching, variants
 
-def remainder_size(bed_file):
+def remainder_size(bed_file, original_path):
     """
     Calculate the number of bases in the small panel not included in the truth regions.
 
@@ -558,7 +558,7 @@ def remainder_size(bed_file):
     """
     print('Calculating remainder')
     print(bed_file)
-    original_bed = '/results/Analysis/MiSeq/MasterBED/' + os.path.basename(bed_file.replace('_truth_regions_1based', ''))
+    original_bed = original_path + os.path.basename(bed_file.replace('_truth_regions_1based', ''))
     print(original_bed)
     truth_region_bed = bed_file.replace('_1based', '')
     print(truth_region_bed)
@@ -587,7 +587,7 @@ def remainder_size(bed_file):
 
     return total_length
 
-def bcftools_isec(sample, decomposed_zipped, bed_dict, bam, reference_vcf, reference_sample, whole_bed, out_dir):
+def bcftools_isec(sample, decomposed_zipped, bed_dict, bam, reference_vcf, reference_sample, whole_bed, out_dir, original_path):
     """
     Intersect the two VCFs and limit to the truth regions and panel BED file.
 
@@ -648,7 +648,7 @@ def bcftools_isec(sample, decomposed_zipped, bed_dict, bam, reference_vcf, refer
 
         if os.path.getsize(f) > 0:
 
-            command = '/results/Pipeline/program/bcftools-1.3.1/bcftools isec -R ' + f + ' -p ' + folder + \
+            command = 'bcftools isec -R ' + f + ' -p ' + folder + \
                       ' ' + reference_vcf +' ' + decomposed_zipped
             try:
                 subprocess.check_call(command, shell=True)
@@ -698,7 +698,7 @@ def bcftools_isec(sample, decomposed_zipped, bed_dict, bam, reference_vcf, refer
             mcc = (true_positives * true_negatives - false_pos * false_negs) / \
                   sqrt(denominator)
 
-            remainder_length = remainder_size(f)
+            remainder_length = remainder_size(f, original_path)
             percent_covered = float(total_bases) / (total_bases + remainder_length) * 100
 
             out = {'false_negative': false_negs_ann, 'false_positive': false_pos_ann,
@@ -715,7 +715,7 @@ def bcftools_isec(sample, decomposed_zipped, bed_dict, bam, reference_vcf, refer
             total_bases = int(bed_dict[f]['length'])
             print(total_bases)
 
-            original_bed = '/results/Analysis/MiSeq/MasterBED/' + os.path.basename(f).replace('_truth_regions_1based', '')
+            original_bed = original_path + os.path.basename(f).replace('_truth_regions_1based', '')
             print(original_bed)
 
             f = open(original_bed, 'r')
@@ -750,7 +750,7 @@ def bcftools_isec(sample, decomposed_zipped, bed_dict, bam, reference_vcf, refer
     return all_results
 
 
-def giab_comp(out=None,sample=None,bed=None,bam=None,v=None,rv=None,rs=None):
+def giab_comp(out=None,sample=None,bed=None,bam=None,v=None,rv=None,rs=None, truth_bed=None, ref=None, abv=None):
     parser = argparse.ArgumentParser()
     parser.add_argument('-o', help='Location of output')
     parser.add_argument('-p', help='Sample name as it appears in the VCF')
@@ -759,6 +759,10 @@ def giab_comp(out=None,sample=None,bed=None,bam=None,v=None,rv=None,rs=None):
     parser.add_argument('-v', help='VCF to be compared')
     parser.add_argument('-rv', help='Path to reference genome vcf', default='/results/Analysis/HiSeq_validation/giab/giab-NA12878/truth_small_variants.decomposed.normalised.vcf.gz')
     parser.add_argument('-rs', help='Identifier used in reference vcf', default='INTEGRATION')
+    parser.add_argument('-truth_bed', help='Truth regions BED file for GIAB', default='/results/Analysis/HiSeq_validation/giab/giab-NA12878/truth_regions.bed')
+    parser.add_argument('-abv', help='Abbreviated BED names file', default='/results/Analysis/MiSeq/MasterBED/abbreviated_bed_names.txt')
+    parser.add_argument('-ref', help='Reference genome', default='/results/Pipeline/program/GATK_resource_bundle/ucsc.hg19.nohap.masked.fasta')
+
     #todo add truth regions argument for huref
     args = parser.parse_args()
 
@@ -793,6 +797,15 @@ def giab_comp(out=None,sample=None,bed=None,bam=None,v=None,rv=None,rs=None):
     else:
         reference_sample = rs
 
+    if not truth_bed:
+        truth_bed = args.truth_bed
+
+    if not ref:
+        ref = args.ref
+
+    if not abv:
+        abv = args.abv
+
     command = 'export PATH=${PATH}:/results/Pipeline/program/bedtools-2.17.0/bin'
     print(command)
     try:
@@ -802,11 +815,13 @@ def giab_comp(out=None,sample=None,bed=None,bam=None,v=None,rv=None,rs=None):
         print('Error executing command: ' + str(e.returncode))
         exit(1)
 
-    bed_dict, whole_bed = generate_bed_intersects(bed_prefix, directory)
+    original_bed_dir = os.path.basename(bed_prefix)
 
-    decomposed_zipped = prepare_vcf(vcf)
+    bed_dict, whole_bed = generate_bed_intersects(bed_prefix, directory, truth_bed, abv)
 
-    results = bcftools_isec(sample, decomposed_zipped, bed_dict, bam, reference_vcf, reference_sample, whole_bed, directory)
+    decomposed_zipped = prepare_vcf(vcf, ref)
+
+    results = bcftools_isec(sample, decomposed_zipped, bed_dict, bam, reference_vcf, reference_sample, whole_bed, directory, original_bed_dir)
 
     f = open(directory+'/giab_summary.txt', 'w')
     j = json.dumps(results, indent=4)

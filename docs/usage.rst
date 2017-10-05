@@ -77,7 +77,7 @@ To run the code, you will also need the following libraries:
 * pysam
 * json2html
 
-You will also need v2.17.0 of BEDtools and v? sambamba. The path to the bin directory should be in the PATH variable:
+You will also need v2.17.0 of BEDtools and v? sambamba, bcftools and vt. The path to the bin directory should be in the PATH variable:
 
 .. code-block:: bash
 

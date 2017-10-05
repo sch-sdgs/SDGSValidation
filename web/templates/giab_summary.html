@@ -1,0 +1,51 @@
+<html>
+<head>
+    <title>SDGS NGS Validation</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
+    <script src="//netdna.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
+    <link rel=stylesheet type=text/css href="/static/validation.css">
+</head>
+<body>
+<div id="container">
+    <div id="filepath" value="{{ filepath }}" hidden></div>
+    <div class="row">
+        <div class="col-md-2"></div>
+        <div class="col-md-8">
+                <div name="totals">
+                    <table class="table table-striped">
+                        <tr>
+                            <th>Panel Name</th>
+                            <th>Sensitivity</th>
+                            <th>MCC</th>
+                            <th>Matching Variants</th>
+                            <th>True Negatives</th>
+                            <th>False Positive</th>
+                            <th>Mismatching Genotype</th>
+                            <th>False Negative</th>
+                            <th>Percent of Panel Covered</th>
+                            <th>Number of bases outside ROI</th>
+
+                        </tr>
+                        {% for panel in order %}
+                        <tr>
+                            <th><a href="{{ url_for('giab_results') }}?panel={{ panel }}&filepath={{ filepath }}">{{ panel }}</a></th>
+                            <td>{{ panels[panel]["sensitivity"] }}</td>
+                            <td>{{ panels[panel]["MCC"] }}</td>
+                            <td>{{ panels[panel]["matching_variants"] }}</td>
+                            <td>{{ panels[panel]["num_true_negatives"] }}</td>
+                            <td>{{ panels[panel]["num_false_positive"] }}</td>
+                            <td>{{ panels[panel]["num_mismatching_genotype"] }}</td>
+                            <td>{{ panels[panel]["num_false_negative"]["total"] }}</td>
+                            <td>{{ panels[panel]["percent_small_panel_covered"] }}</td>
+                            <td>{{ panels[panel]["small_panel_remainder_length"] }}</td>
+                        </tr>
+                        {% endfor %}
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2"></div>
+    </div>
+</div>
+</body>

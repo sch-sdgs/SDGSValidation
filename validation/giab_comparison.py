@@ -227,7 +227,7 @@ def get_coverage(whole_bed, directory, sample, bam):
     else:
         out = directory + '/whole_bed_coverage.txt'
     print(whole_bed)
-    command = '/results/Pipeline/program/sambamba-0.6.3/build/sambamba depth base --min-coverage=0 -q29 -m -L ' + whole_bed + \
+    command = 'sambamba depth base --min-coverage=0 -q29 -m -L ' + whole_bed + \
               ' ' + bam + ' > ' + out + '.tmp'
     print(command)
     try:

@@ -74,14 +74,14 @@ def generate_gene_dict(beds, output_folder):
     whole_merged = whole_sorted.merge(nms=True)
     whole_merged.saveas(output_regions)
 
-    # command = 'python /results/Pipeline/SDGSPipeline/scripts/fill_bed.py --bed ' + output_regions + ' --out ' + output_genes
-    #
-    # try:
-    #     subprocess.check_output(command, shell=True)
-    # except subprocess.CalledProcessError as e:
-    #     print(command)
-    #     print('Error executing command: ' + str(e.returncode))
-    #     exit(1)
+    command = 'python /results/Pipeline/SDGSPipeline/scripts/fill_bed.py --bed ' + output_regions + ' --out ' + output_genes
+
+    try:
+        subprocess.check_output(command, shell=True)
+    except subprocess.CalledProcessError as e:
+        print(command)
+        print('Error executing command: ' + str(e.returncode))
+        exit(1)
 
     f = open(output_genes)
     lines = [line.strip('\n') for line in f.readlines()]
@@ -126,9 +126,7 @@ def generate_bed_dict(beds):
         command = "grep " + os.path.basename(bed) + " /results/Analysis/MiSeq/MasterBED/abbreviated_bed_names.txt | cut -f2"
         try:
             abv = subprocess.check_output(command, shell=True).replace('\n', '')
-            print(abv)
             if not abv:
-                print('No abv found for ' + bed)
                 abv = bed
             bed_dict[abv] = {'name':bed, 'regions':{}}
             #todo change this back to MasterBED
@@ -181,6 +179,13 @@ def get_coverage_for_dict(coverage_input, bed_dict):
     #generate coverage dictionary (used to populate BED dict)
     coverage = {}
 
+    ry_cov_file = '/results/Analysis/projects/Movement/red_yellow_coverage_regions.txt'
+    ry = open(ry_cov_file, 'w')
+    g_cov_file = '/results/Analysis/projects/Movement/green_coverage_regions.txt'
+    g = open(g_cov_file, 'w')
+    p_cov_file = '/results/Analysis/projects/Movement/purple_coverage_regions.txt'
+    p = open(p_cov_file, 'w')
+
     for bed in coverage_input:
         f = open(bed, 'r')
         lines = [line.strip('\n') for line in f.readlines()]
@@ -220,6 +225,7 @@ def get_coverage_for_dict(coverage_input, bed_dict):
                 count_18_30 = 0
                 count_30_100 = 0
                 count_more_100 = 0
+                count_more_1000 = 0
 
                 #list start<=i<end
                 for i in range(start, end):
@@ -228,14 +234,21 @@ def get_coverage_for_dict(coverage_input, bed_dict):
                         cov = coverage[chrom][i]['cov']
                         coverage[chrom][i]['name'] = name
                         avg = sum(cov) / float(len(cov))
+                        line = chrom + '\t' + str(i) + '\t' + str(i + 1) + '\n'
                         if avg < 18:
                             count_less_18 += 1
+                            ry.write(line)
                         elif 18<= avg < 30:
                             count_18_30 += 1
-                        elif 50 <= avg < 100:
+                            ry.write(line)
+                        elif 30 <= avg < 100:
                             count_30_100 += 1
-                        else:
+                            g.write(line)
+                        elif 100 <= avg < 1000:
                             count_more_100 += 1
+                        else:
+                            count_more_1000 += 1
+                            p.write(line)
 
                         if i not in bed_dict[abv]['regions'][chrom][name]['coverage']:
                             bed_dict[abv]['regions'][chrom][name]['coverage'][i] = cov
@@ -247,15 +260,20 @@ def get_coverage_for_dict(coverage_input, bed_dict):
                         p_18_30 = count_18_30 / float(length)
                         p_30_100 = count_30_100 / float(length)
                         p_more_100 = count_more_100 / float(length)
+                        p_more_1000 = count_more_1000 / float(length)
 
                         bed_dict[abv]['regions'][chrom][name]['p_less_18'] = p_less_18
                         bed_dict[abv]['regions'][chrom][name]['p_18_30'] = p_18_30
                         bed_dict[abv]['regions'][chrom][name]['p_30_100'] = p_30_100
                         bed_dict[abv]['regions'][chrom][name]['p_more_100'] = p_more_100
+                        bed_dict[abv]['regions'][chrom][name]['p_more_1000'] = p_more_1000
 
                     except KeyError:
                         pass
-
+    ry.close()
+    g.close()
+    p.close()
+    print('cov files written')
     return coverage, bed_dict
 
 def plot_region_coverage(panel_name, panel_dict, output_folder):
@@ -292,13 +310,13 @@ def plot_region_coverage(panel_name, panel_dict, output_folder):
     between_18_30 = []
     between_30_100 = []
     more_100 = []
+    more_1000 = []
 
     #get regions in chromosome order; regions should be in the order they were entered into the dictionary
     for chrom in chroms:
-        try:#chromosome may not be in the panel
+        if chrom in regions.keys():
             for name in regions[chrom].keys():
                 name_fields = name.split('_')
-                print(name_fields)
                 if len(name_fields) > 3:
                     short_name = name_fields[0] + '-' + name_fields[1] + '-' + name_fields[2] + '-' + name_fields[3]
                 else:
@@ -308,12 +326,79 @@ def plot_region_coverage(panel_name, panel_dict, output_folder):
                 between_18_30.append(regions[chrom][name]['p_18_30'])
                 between_30_100.append(regions[chrom][name]['p_30_100'])
                 more_100.append(regions[chrom][name]['p_more_100'])
-        except KeyError:
-            pass
-
+                more_1000.append(regions[chrom][name]['p_more_1000'])
     # split panels with more than 70 regions onto multiple lines
-    if len(names) > 70:
-        print(panel_name)
+    if len(names) > 210:
+        fig_count = int(math.ceil(len(names) / 210.0))
+        figs = range(fig_count)
+
+        fig_less_18 = numpy.split(numpy.asarray(less_18), [(i + 1) * 210 for i in figs])
+        fig_18_30 = numpy.split(numpy.asarray(between_18_30), [(i + 1) * 210 for i in figs])
+        fig_30_100 = numpy.split(numpy.asarray(between_30_100), [(i + 1) * 210 for i in figs])
+        fig_more_100 = numpy.split(numpy.asarray(more_100), [(i + 1) * 210 for i in figs])
+        fig_more_1000 = numpy.split(numpy.asarray(more_1000), [(i + 1) * 210 for i in figs])
+        fig_regions = numpy.split(numpy.asarray(names), [(i + 1) * 210 for i in figs])
+
+        for n in figs:
+            graph_no = int(math.ceil(len(fig_regions[n]) / 70.0))
+            spacing = [i + 1 for i in range(70)]
+            width = 0.75
+            tick_pos = [i + (width / 2.) for i in spacing]
+            f, subplots = plt.subplots(graph_no, 1, figsize=(19, 10 * graph_no))
+
+            subs = range(graph_no)
+
+            sub_less_18 = numpy.split(numpy.asarray(fig_less_18[n]), [i * 70 for i in subs])
+            sub_18_30 = numpy.split(numpy.asarray(fig_18_30[n]), [i * 70 for i in subs])
+            sub_30_100 = numpy.split(numpy.asarray(fig_30_100[n]), [i * 70 for i in subs])
+            sub_more_100 = numpy.split(numpy.asarray(fig_more_100[n]), [i * 70 for i in subs])
+            sub_more_1000 = numpy.split(numpy.asarray(fig_more_1000[n]), [i * 70 for i in subs])
+            sub_regions = numpy.split(numpy.asarray(fig_regions[n]), [i * 70 for i in subs])
+
+            plot_no = 1
+            for ax in subplots.flatten():
+                if len(sub_less_18[plot_no]) < 70:
+                    a = sub_less_18[plot_no]
+                    b = sub_18_30[plot_no]
+                    c = sub_30_100[plot_no]
+                    d = sub_more_100[plot_no]
+                    e = sub_more_1000[plot_no]
+
+                    # extend the array to make 70
+                    zeros = [0] * (70 - len(sub_less_18[plot_no]))
+                    a = numpy.append(a, zeros)
+                    b = numpy.append(b, zeros)
+                    c = numpy.append(c, zeros)
+                    d = numpy.append(d, zeros)
+                    e = numpy.append(e, zeros)
+                else:
+                    a = sub_less_18[plot_no]
+                    b = sub_18_30[plot_no]
+                    c = sub_30_100[plot_no]
+                    d = sub_more_100[plot_no]
+                    e = sub_more_1000[plot_no]
+
+                ax.bar(spacing, a, width, color='r', label='Less than 18X')
+                ax.bar(spacing, b, width, bottom=a, color='y', label='Between 18X and 30X')
+                ax.bar(spacing, c, width, bottom=[i + j for i, j in zip(a, b)],
+                       color='g', label='Between 30X and 100X')
+                ax.bar(spacing, d, width,
+                       bottom=[i + j + k for i, j, k in zip(a, b, c)], color='0.75',
+                       label='Between 100X and 1000X')
+                ax.bar(spacing, e, width,
+                       bottom=[i + j + k + l for i, j, k, l in zip(a, b, c, d)], color='#624ea7',
+                       label='Over 1000X')
+
+                ax.set_xticks(tick_pos)
+                ax.set_xticklabels(sub_regions[plot_no], rotation='vertical')
+                ax.set_yticks(numpy.arange(0, 1.1, 0.1))
+                ax.set_xlim([min(tick_pos) - width, max(tick_pos) + width])
+                plot_no += 1
+            f.text(0.001, 0.5, 'Proportion of region at given depth', verticalalignment='center', rotation='vertical')
+            plt.legend(loc='upper right', title="Coverage")
+            f.tight_layout()
+            plt.savefig(output_file.replace('.png', '_' + str(n) + '.png'))
+    elif len(names) > 70:
         graph_no = int(math.ceil(len(names) / 70.0))
         spacing = [i + 1 for i in range(70)]
         width = 0.75
@@ -326,6 +411,7 @@ def plot_region_coverage(panel_name, panel_dict, output_folder):
         sub_18_30 = numpy.split(numpy.asarray(between_18_30), [i * 70 for i in subs])
         sub_30_100 = numpy.split(numpy.asarray(between_30_100), [i * 70 for i in subs])
         sub_more_100 = numpy.split(numpy.asarray(more_100), [i * 70 for i in subs])
+        sub_more_1000 = numpy.split(numpy.asarray(more_1000), [i * 70 for i in subs])
         sub_regions = numpy.split(numpy.asarray(names), [i * 70 for i in subs])
 
         plot_no = 1
@@ -335,17 +421,21 @@ def plot_region_coverage(panel_name, panel_dict, output_folder):
                 b = sub_18_30[plot_no]
                 c = sub_30_100[plot_no]
                 d = sub_more_100[plot_no]
+                e = sub_more_1000[plot_no]
+
                 # extend the array to make 70
                 zeros = [0] * (70 - len(sub_less_18[plot_no]))
                 a = numpy.append(a, zeros)
                 b = numpy.append(b, zeros)
                 c = numpy.append(c, zeros)
                 d = numpy.append(d, zeros)
+                e = numpy.append(e, zeros)
             else:
                 a = sub_less_18[plot_no]
                 b = sub_18_30[plot_no]
                 c = sub_30_100[plot_no]
                 d = sub_more_100[plot_no]
+                e = sub_more_1000[plot_no]
 
             ax.bar(spacing, a, width, color='r', label='Less than 18X')
             ax.bar(spacing, b, width, bottom=a, color='y', label='Between 18X and 30X')
@@ -353,7 +443,10 @@ def plot_region_coverage(panel_name, panel_dict, output_folder):
                    color='g', label='Between 30X and 100X')
             ax.bar(spacing, d, width,
                    bottom=[i + j + k for i, j, k in zip(a, b, c)], color='0.75',
-                   label='Over 100X')
+                   label='Between 100X and 1000X')
+            ax.bar(spacing, e, width,
+                   bottom=[i + j + k + l for i, j, k, l in zip(a, b, c, d)], color='#624ea7',
+                   label='Over 1000X')
 
             ax.set_xticks(tick_pos)
             ax.set_xticklabels(sub_regions[plot_no], rotation='vertical')
@@ -362,9 +455,13 @@ def plot_region_coverage(panel_name, panel_dict, output_folder):
             if plot_no == 1:
                 ax.set_title(panel_name)
             plot_no += 1
+        f.text(0.001, 0.5, 'Proportion of region at given depth', verticalalignment='center', rotation='vertical')
+        f.text(0.5, 0.01, 'Region Name', verticalalignment='center')
+        plt.legend(loc='upper right')
+        f.tight_layout()
+        plt.savefig(output_file)
 
     else:
-        print(panel_name)
         spacing = [i + 1 for i in range(len(names))]
         width = 0.75
         tick_pos = [i + (width / 2.) for i in spacing]
@@ -375,17 +472,20 @@ def plot_region_coverage(panel_name, panel_dict, output_folder):
                 color='g', label='Between 50X and 100X')
         ax1.bar(spacing, more_100, width,
                 bottom=[i + j + k for i, j, k in zip(less_18, between_18_30, between_30_100)], color='0.6',
-                label='Over 100X')
+                label='Between 100X and 1000X')
+        ax1.bar(spacing, more_1000, width,
+                bottom=[i + j + k for i, j, k, l in zip(less_18, between_18_30, between_30_100, more_100)], color='0.6',
+                label='Over 1000X')
         ax1.set_xlim([min(tick_pos) - width, max(tick_pos) + width])
         plt.title(panel_name)
         plt.xticks(tick_pos, names, rotation='vertical')
         plt.yticks(numpy.arange(0, 1.1, 0.1))
 
-    f.text(0.001, 0.5, 'Proportion of region at given depth', verticalalignment='center', rotation='vertical')
-    f.text(0.5, 0.01, 'Region Name', verticalalignment='center')
-    plt.legend(loc='upper right')
-    f.tight_layout()
-    plt.savefig(output_file)
+        f.text(0.001, 0.5, 'Proportion of region at given depth', verticalalignment='center', rotation='vertical')
+        f.text(0.5, 0.01, 'Region Name', verticalalignment='center')
+        plt.legend(loc='upper right')
+        f.tight_layout()
+        plt.savefig(output_file)
 
 def generate_gene_plots(gene_dict, coverage, output_folder):
     """
@@ -463,6 +563,13 @@ def generate_gene_plots(gene_dict, coverage, output_folder):
                                 exon = s
                         intron_number += 1
 
+                        cov_mean = numpy.mean(cov)
+                        cov_max = max(cov)
+                        cov_min = min(cov)
+                        maximums.append(cov_max)
+                        minimums.append(cov_min)
+                        avg.append(cov_mean)
+
                         x.append(index)
                         index += 1
                     except KeyError:
@@ -537,13 +644,11 @@ def generate_coverage(whole_bed, bam_list, output_folder):
         if bam == '':
             continue
         if '-' in os.path.basename(bam):
-            print(bam)
             sample_split = os.path.basename(bam).split('_')[0].split('-')
             sample = sample_split[1] + '-' + sample_split[2]
         else:
             sample_split = os.path.basename(bam).split('_')
             sample = sample_split[0] + '_' + sample_split[1]
-        print(sample)
         outfile = output_folder + sample + '_coverage.txt'
         if os.path.exists(outfile):
             coverage_list.append(outfile.replace('.txt', '.bed.tmp'))
@@ -597,8 +702,8 @@ def main():
 
 
     #generate graphs
-    for bed in bed_dict.keys():
-        plot_region_coverage(bed, bed_dict[bed], output_folder)
+    # for bed in bed_dict.keys():
+    #     plot_region_coverage(bed, bed_dict[bed], output_folder)
 
     generate_gene_plots(gene_dict, coverage, output_folder)
 

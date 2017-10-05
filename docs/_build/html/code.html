@@ -1,33 +1,32 @@
+
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-
 
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    
-    <title>Appendix 1 - SDGS Validation &mdash; SDGS Validation 1.0.0 documentation</title>
-    
+    <title>SDGS Validation Scripts &#8212; SDGS Validation 1.0.0 documentation</title>
     <link rel="stylesheet" href="_static/classic.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-    
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    './',
         VERSION:     '1.0.0',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
-        HAS_SOURCE:  true
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
       };
     </script>
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
-    <link rel="top" title="SDGS Validation 1.0.0 documentation" href="index.html" />
-    <link rel="prev" title="Welcome to SDGS Validation’s documentation!" href="index.html" /> 
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="SDGS Validation Usage" href="usage.html" /> 
   </head>
-  <body role="document">
+  <body>
     <div class="related" role="navigation" aria-label="related navigation">
       <h3>Navigation</h3>
       <ul>
@@ -35,9 +34,9 @@
           <a href="genindex.html" title="General Index"
              accesskey="I">index</a></li>
         <li class="right" >
-          <a href="index.html" title="Welcome to SDGS Validation’s documentation!"
+          <a href="usage.html" title="SDGS Validation Usage"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">SDGS Validation 1.0.0 documentation</a> &raquo;</li> 
+        <li class="nav-item nav-item-0"><a href="index.html">SDGS Validation 1.0.0 documentation</a> &#187;</li> 
       </ul>
     </div>  
 
@@ -46,8 +45,8 @@
         <div class="bodywrapper">
           <div class="body" role="main">
             
-  <div class="section" id="appendix-1-sdgs-validation">
-<h1>Appendix 1 - SDGS Validation<a class="headerlink" href="#appendix-1-sdgs-validation" title="Permalink to this headline">¶</a></h1>
+  <div class="section" id="sdgs-validation-scripts">
+<h1>SDGS Validation Scripts<a class="headerlink" href="#sdgs-validation-scripts" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="comparison-with-the-genome-in-a-bottle-reference-sample">
 <h2>Comparison with the Genome in a Bottle Reference Sample<a class="headerlink" href="#comparison-with-the-genome-in-a-bottle-reference-sample" title="Permalink to this headline">¶</a></h2>
 <p>This script carries out a comparison of sequencing results to the reference calls for NA12878 (the flagship genome for the Genome in a Bottle Consortium).
@@ -55,11 +54,85 @@ Sequencing of a reference sample is now required to meet best practice guideline
 <p>In order for the variants to be filtered to the regions of interest an intersection of the BED files for the panel being validated and the GIAB truth regions must be generated. Any regions outside the truth regions cannot be confirmed as homozygous reference and these regions cannot be annotated as true or false calls.</p>
 <div class="section" id="generate-bed-intersects">
 <h3>Generate BED Intersects<a class="headerlink" href="#generate-bed-intersects" title="Permalink to this headline">¶</a></h3>
+<dl class="method">
+<dt id="validation.giab_comparison.generate_bed_intersects">
+<code class="descclassname">giab_comparison.</code><code class="descname">generate_bed_intersects</code><span class="sig-paren">(</span><em>bed_prefix</em>, <em>directory</em><span class="sig-paren">)</span><a class="headerlink" href="#validation.giab_comparison.generate_bed_intersects" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates the intersected BED file for the broad panel and each sub panel associated with the given abbreviation</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>bed_prefix</strong> (<em>String</em>) – The prefix given to each of the BED files within the panel</li>
+<li><strong>directory</strong> (<em>String</em>) – Location of pipeline output</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Dictionary containing the abbreviations for each of the one-based bed files</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">Dictionary</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 <div class="section" id="generate-whole-bed">
 <h4>Generate Whole BED<a class="headerlink" href="#generate-whole-bed" title="Permalink to this headline">¶</a></h4>
+<dl class="method">
+<dt id="validation.giab_comparison.generate_whole_bed">
+<code class="descclassname">giab_comparison.</code><code class="descname">generate_whole_bed</code><span class="sig-paren">(</span><em>truth_regions</em>, <em>bedtool_list</em>, <em>out_dir</em><span class="sig-paren">)</span><a class="headerlink" href="#validation.giab_comparison.generate_whole_bed" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate broad BED file for the regions that overlap with the truth set</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>truth_regions</strong> (<em>BedTool</em>) – GIAB truth regions</li>
+<li><strong>bedtool_list</strong> (<em>List of BedTool objects</em>) – List of BED files in the panel (as BEDTools)</li>
+<li><strong>out_dir</strong> (<em>String</em>) – location for whole bed file</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">File path to the final BED file</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">String</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 </div>
 <div class="section" id="generate-remainder">
 <h4>Generate Remainder<a class="headerlink" href="#generate-remainder" title="Permalink to this headline">¶</a></h4>
+<dl class="method">
+<dt id="validation.giab_comparison.generate_remainder">
+<code class="descclassname">giab_comparison.</code><code class="descname">generate_remainder</code><span class="sig-paren">(</span><em>whole_bed</em>, <em>out_dir</em>, <em>bed_list</em><span class="sig-paren">)</span><a class="headerlink" href="#validation.giab_comparison.generate_remainder" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate the remaining regions that are not included in the truth set</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>whole_bed</strong> (<em>String</em>) – Path to the truth regions for the whole panel</li>
+<li><strong>out_dir</strong> (<em>String</em>) – Prefix used for all the bed files</li>
+<li><strong>bed_list</strong> (<em>List of String</em>) – List of all the bed files for that panel</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">BEDTool containing any regions that are completely missing from the truth regions</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">BedTool</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 </div>
 </div>
 <div class="section" id="compare-vcfs">
@@ -67,9 +140,60 @@ Sequencing of a reference sample is now required to meet best practice guideline
 <p>The BED files generated are used to filter the VCF files for comparison using bcftools isec.</p>
 <div class="section" id="prepare-vcf">
 <h4>Prepare VCF<a class="headerlink" href="#prepare-vcf" title="Permalink to this headline">¶</a></h4>
+<dl class="method">
+<dt id="validation.giab_comparison.prepare_vcf">
+<code class="descclassname">giab_comparison.</code><code class="descname">prepare_vcf</code><span class="sig-paren">(</span><em>vcf</em><span class="sig-paren">)</span><a class="headerlink" href="#validation.giab_comparison.prepare_vcf" title="Permalink to this definition">¶</a></dt>
+<dd><p>VCF must be decomposed, normalised and zipped and indexed before it can be used with bcftools</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>vcf</strong> (<em>String</em>) – The file path to the original VCF</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">File path to the decomposed and zipped VCF</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">String</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 </div>
 <div class="section" id="intersect-vcfs">
 <h4>Intersect VCFs<a class="headerlink" href="#intersect-vcfs" title="Permalink to this headline">¶</a></h4>
+<dl class="method">
+<dt id="validation.giab_comparison.bcftools_isec">
+<code class="descclassname">giab_comparison.</code><code class="descname">bcftools_isec</code><span class="sig-paren">(</span><em>sample</em>, <em>decomposed_zipped</em>, <em>bed_dict</em>, <em>bam</em>, <em>reference_vcf</em>, <em>reference_sample</em>, <em>whole_bed</em>, <em>out_dir</em><span class="sig-paren">)</span><a class="headerlink" href="#validation.giab_comparison.bcftools_isec" title="Permalink to this definition">¶</a></dt>
+<dd><p>Intersect the two VCFs and limit to the truth regions and panel BED file.</p>
+<p>The method counts the number of false positives and false negatives and checks the genotype of all of the matching
+variants.</p>
+<p>Depth of false negatives are investigated</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>sample</strong> (<em>String</em>) – Sample name as it appears in the VCF</li>
+<li><strong>decomposed_zipped</strong> (<em>String</em>) – File path for the decomposed and zipped VCF</li>
+<li><strong>bed_dict</strong> (<em>Dictionary</em>) – Dictionary containing the abbreviations for each of the BED files - to be used as folder names</li>
+<li><strong>bam</strong> (<em>String</em>) – Path to BAM file to be used in coverage calculation</li>
+<li><strong>reference_vcf</strong> (<em>String</em>) – Path to the reference genome VCF</li>
+<li><strong>reference_sample</strong> (<em>String</em>) – Identifier in reference sample VCF</li>
+<li><strong>whole_bed</strong> (<em>String</em>) – Path to combined BED file</li>
+<li><strong>out_dir</strong> (<em>String</em>) – Directory for results files</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Analysis of variant comparison</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">Dictionary</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 </div>
 <div class="section" id="annotate-results">
 <h4>Annotate results<a class="headerlink" href="#annotate-results" title="Permalink to this headline">¶</a></h4>
@@ -77,18 +201,159 @@ Sequencing of a reference sample is now required to meet best practice guideline
 False calls are annotated with the coverage at that position to determine whether there is evidence of the missed variant for false negatives and if there is a coverage related reason for false positives or mismatching genotypes.</p>
 <div class="section" id="false-positives">
 <h5>False Positives<a class="headerlink" href="#false-positives" title="Permalink to this headline">¶</a></h5>
+<dl class="method">
+<dt id="validation.giab_comparison.annotate_false_pos">
+<code class="descclassname">giab_comparison.</code><code class="descname">annotate_false_pos</code><span class="sig-paren">(</span><em>folder</em>, <em>coverage_file</em>, <em>sample</em><span class="sig-paren">)</span><a class="headerlink" href="#validation.giab_comparison.annotate_false_pos" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get information for any false positive results</p>
+<p>Returns basic variant info plus quality, genotype, coverage (total, ref base and alt base if appropriate)</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>folder</strong> (<em>String</em>) – Folder containing output from bcftools isec</li>
+<li><strong>coverage_file</strong> (<em>String</em>) – File containing per base coverage for the truth_regions panel</li>
+<li><strong>sample</strong> (<em>String</em>) – Container ID used in vcf file</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">List of variant dictionaries containing information on false negatives</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">List</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 </div>
 <div class="section" id="false-negatives">
 <h5>False Negatives<a class="headerlink" href="#false-negatives" title="Permalink to this headline">¶</a></h5>
+<dl class="method">
+<dt id="validation.giab_comparison.annotate_false_negs">
+<code class="descclassname">giab_comparison.</code><code class="descname">annotate_false_negs</code><span class="sig-paren">(</span><em>folder</em>, <em>ref_sample</em>, <em>coverage_file</em><span class="sig-paren">)</span><a class="headerlink" href="#validation.giab_comparison.annotate_false_negs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get information for any false negative results.</p>
+<p>Returns basic variant info plus quality, genotype, coverage (total, ref base and alt base if appropriate)</p>
+<p>False Negatives are split into categories to aid final comparison:</p>
+<ul class="simple">
+<li>Zero coverage - No reads present</li>
+<li>Evidence of alternate allele - Coverage or quality too low for variant call</li>
+<li>Indels - Coverage is more difficult to obtain in these cases; currently they must be investigated by hand</li>
+<li>All other false negatives - In these cases there are reads present and no evidence of the alternate allele</li>
+</ul>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>folder</strong> (<em>String</em>) – Folder containing output from bcftools isec</li>
+<li><strong>ref_sample</strong> (<em>String</em>) – Sample number for reference vcf</li>
+<li><strong>coverage_file</strong> (<em>String</em>) – File containing per base coverage for the truth_regions panel</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">List of variant dictionaries containing information on false negatives</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">List</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 </div>
 <div class="section" id="mismatching-genotypes">
 <h5>Mismatching Genotypes<a class="headerlink" href="#mismatching-genotypes" title="Permalink to this headline">¶</a></h5>
+<dl class="method">
+<dt id="validation.giab_comparison.check_genotype">
+<code class="descclassname">giab_comparison.</code><code class="descname">check_genotype</code><span class="sig-paren">(</span><em>folder</em>, <em>sample</em>, <em>ref_sample</em>, <em>coverage_file</em><span class="sig-paren">)</span><a class="headerlink" href="#validation.giab_comparison.check_genotype" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compares the genotype for all shared variants</p>
+<p>The number of matching variants are counted and those that do not match are annotated with basic variant info plus
+quality, genotype, coverage (total, ref base and alt base if appropriate)</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>folder</strong> (<em>String</em>) – Location of results from the NGS analysis pipeline</li>
+<li><strong>sample</strong> (<em>String</em>) – Sample number (used in vcf file)</li>
+<li><strong>ref_sample</strong> (<em>String</em>) – Sample number for reference vcf</li>
+<li><strong>coverage_file</strong> (<em>String</em>) – File containing coverage information for each position in the panel</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Number of matching variants</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">Int</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">List of variant dictionaries with detailed information for mismatching genotypes</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">List</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 </div>
 <div class="section" id="check-coverage">
 <h5>Check Coverage<a class="headerlink" href="#check-coverage" title="Permalink to this headline">¶</a></h5>
+<dl class="method">
+<dt id="validation.giab_comparison.get_coverage">
+<code class="descclassname">giab_comparison.</code><code class="descname">get_coverage</code><span class="sig-paren">(</span><em>whole_bed</em>, <em>directory</em>, <em>sample</em>, <em>bam</em><span class="sig-paren">)</span><a class="headerlink" href="#validation.giab_comparison.get_coverage" title="Permalink to this definition">¶</a></dt>
+<dd><p>Coverage at all positions is calculated.</p>
+<p>This is then used for coverage analysis and to determine read depth at any false negative sites</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>whole_bed</strong> (<em>String</em>) – BED file generated from all BED files in panel</li>
+<li><strong>directory</strong> (<em>String</em>) – Location of patient results</li>
+<li><strong>sample</strong> (<em>String</em>) – sample ID</li>
+<li><strong>bam</strong> (<em>String</em>) – Path to BAM file to be used in coverage calculation</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Filename for coverage stats</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">String</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 </div>
 <div class="section" id="calculating-remainder">
 <h5>Calculating Remainder<a class="headerlink" href="#calculating-remainder" title="Permalink to this headline">¶</a></h5>
+<dl class="method">
+<dt id="validation.giab_comparison.remainder_size">
+<code class="descclassname">giab_comparison.</code><code class="descname">remainder_size</code><span class="sig-paren">(</span><em>bed_file</em><span class="sig-paren">)</span><a class="headerlink" href="#validation.giab_comparison.remainder_size" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate the number of bases in the small panel not included in the truth regions.</p>
+<p>The amount of the panel that overlaps with the truth regions is calculated. This gives an idea of how well the
+panel is represented in the reference sample and whether it is an accurate reflection of the accuracy of the
+process.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>bed_file</strong> (<em>String</em>) – File path to the specific panel bed file</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Total length of regions in remainder BED file</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">Int</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 </div>
 </div>
 </div>
@@ -102,27 +367,206 @@ False calls are annotated with the coverage at that position to determine whethe
 <p>The regions of interest and corresponding coverage values are used to populate a series of dictionaries. The information within the dictionaries can then be accessed quickly when generating the graphs.</p>
 <div class="section" id="generate-bed-dictionary">
 <h4>Generate BED Dictionary<a class="headerlink" href="#generate-bed-dictionary" title="Permalink to this headline">¶</a></h4>
+<dl class="method">
+<dt id="validation.coverage_plots.generate_bed_dict">
+<code class="descclassname">coverage_plots.</code><code class="descname">generate_bed_dict</code><span class="sig-paren">(</span><em>beds</em><span class="sig-paren">)</span><a class="headerlink" href="#validation.coverage_plots.generate_bed_dict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate a dictionary of bed files using their abbreviation as the key.</p>
+<p>The dictionary includes the coordinates and name given to each of the regions within the BED file and the coverage
+values will be added to this subsequently. The completed dictionary will then be used to generate the proportional
+coverage graphs for each sub panel specified.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>beds</strong> (<em>List</em>) – List of bed files</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Dictionary of BED files with the abbreviation as the key</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">Dictionary</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 </div>
 <div class="section" id="generate-gene-dictionary">
 <h4>Generate Gene Dictionary<a class="headerlink" href="#generate-gene-dictionary" title="Permalink to this headline">¶</a></h4>
+<dl class="method">
+<dt id="validation.coverage_plots.generate_gene_dict">
+<code class="descclassname">coverage_plots.</code><code class="descname">generate_gene_dict</code><span class="sig-paren">(</span><em>beds</em>, <em>output_folder</em><span class="sig-paren">)</span><a class="headerlink" href="#validation.coverage_plots.generate_gene_dict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate a Dictionary for the genes and coordinates for the panel.</p>
+<p>Each of the BED files specified in the arguments are combined and a helper script from the diagnostic pipeline is
+used to file the regions and determine the genes that are included in the panel. These regions form the basis of
+the dictionary that will subsequently be filled with the coverage coordinates and generate the gene graphs.</p>
+<p>The start and end coordinates used in the dictionary are expanded 1Kb either side of the start and end of the
+regions in the gene.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>beds</strong> (<em>List</em>) – File paths to all the BED files to be merged</li>
+<li><strong>output_folder</strong> – folder to save any output files</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Dictionary containing all genes and the start and end coordinates</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">Dictionary</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 </div>
 <div class="section" id="getting-coverage-values">
 <h4>Getting Coverage Values<a class="headerlink" href="#getting-coverage-values" title="Permalink to this headline">¶</a></h4>
+<dl class="method">
+<dt id="validation.coverage_plots.get_coverage">
+<code class="descclassname">coverage_plots.</code><code class="descname">get_coverage</code><span class="sig-paren">(</span><em>whole_bed</em>, <em>directory</em>, <em>sample</em>, <em>bam</em><span class="sig-paren">)</span><a class="headerlink" href="#validation.coverage_plots.get_coverage" title="Permalink to this definition">¶</a></dt>
+<dd><p>Coverage at all positions is calculated.</p>
+<p>This is then used for coverage analysis and to determine read depth at any false negative sites</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>whole_bed</strong> (<em>String</em>) – BED file generated from all BED files in panel</li>
+<li><strong>directory</strong> (<em>String</em>) – Location of patient results</li>
+<li><strong>sample</strong> (<em>String</em>) – sample ID</li>
+<li><strong>bam</strong> (<em>String</em>) – Path to BAM file to be used in coverage calculation</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Filename for coverage stats</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">String</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 </div>
 </div>
 <div class="section" id="generating-plots">
 <h3>Generating Plots<a class="headerlink" href="#generating-plots" title="Permalink to this headline">¶</a></h3>
 <div class="section" id="sub-panel-graphs">
 <h4>Sub Panel Graphs<a class="headerlink" href="#sub-panel-graphs" title="Permalink to this headline">¶</a></h4>
+<dl class="method">
+<dt id="validation.coverage_plots.plot_region_coverage">
+<code class="descclassname">coverage_plots.</code><code class="descname">plot_region_coverage</code><span class="sig-paren">(</span><em>panel_name</em>, <em>panel_dict</em>, <em>output_folder</em><span class="sig-paren">)</span><a class="headerlink" href="#validation.coverage_plots.plot_region_coverage" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate a plot for each panel.</p>
+<p>The plots generated show the proportion of positions that have an average coverage in each of the
+pre-defined bins (less than 18X, between 18 and 30X, between 30 and 100X and greater than 100X).</p>
+<p>The figures are split into sub-plots if there are more than 70 regions in the panel. This makes the regions more
+readable in the final figure.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>panel_name</strong> (<em>String</em>) – Abbreviation for the panel used in the pipeline</li>
+<li><strong>panel_dict</strong> (<em>Dictionary</em>) – Dictionary for the specific sub-panel (sub-section of bed_dict)</li>
+<li><strong>output_folder</strong> – Location for graphs to be saved</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">None</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 </div>
 <div class="section" id="gene-graphs">
 <h4>Gene Graphs<a class="headerlink" href="#gene-graphs" title="Permalink to this headline">¶</a></h4>
+<dl class="method">
+<dt id="validation.coverage_plots.generate_gene_plots">
+<code class="descclassname">coverage_plots.</code><code class="descname">generate_gene_plots</code><span class="sig-paren">(</span><em>gene_dict</em>, <em>coverage</em>, <em>output_folder</em><span class="sig-paren">)</span><a class="headerlink" href="#validation.coverage_plots.generate_gene_plots" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate a coverage figure for each gene separated by exon.</p>
+<p>A figure is produced for each gene containing a plot per exon to show the average coverage at each position (
+red line), the maximum coverage at each position (green line) and the minimum coverage at each position (blue line)
+within the region.</p>
+<p>All of the plots within the figure share the same x axis to allow the graphs to be comparable by eye. However, this
+does not apply across genes. The subplots are no more than five to a row to improve readability. Some of the larger
+exons can appear slightly squashed but the general trend can still be observed.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>gene_dict</strong> (<em>Dictionary</em>) – Dictionary of the start and end position of each gene</li>
+<li><strong>coverage</strong> (<em>Dictionary</em>) – Dictionary containing the coverage information for the validation patients</li>
+<li><strong>output_folder</strong> (<em>String</em>) – Location for graphs to be saved</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">None</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 </div>
 </div>
 </div>
 <div class="section" id="calculating-the-number-of-unique-variants-analysed-during-the-validation">
 <h2>Calculating the Number of Unique Variants Analysed During the Validation<a class="headerlink" href="#calculating-the-number-of-unique-variants-analysed-during-the-validation" title="Permalink to this headline">¶</a></h2>
 <p>This script calculates the number of unique variants identified that are shared, unique to the MiSeq data and unique to the HiSeq data. The output is a series of JSON files detailing the variants and counts.</p>
+<dl class="method">
+<dt id="validation.UniqueVariants.variant_counts">
+<code class="descclassname">UniqueVariants.</code><code class="descname">variant_counts</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#validation.UniqueVariants.variant_counts" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compare two variant files for a number of patients to calculate the number of unique variants and amount of overlap.</p>
+<p>The script calculates the number of shared variants, unique to HiSeq and unique to MiSeq for each patient.
+A count of the overall number of unique variants is also calculated as this must reach at least 60 for the
+validation of a new panel.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>--files</strong> (<em>String</em>) – Path to a file containing the paths to the variant files. Must be formatted Sample,MiSeq_file,HiSeq_file using commas as separators</li>
+<li><strong>--out</strong> (<em>String</em>) – The path to the folder for the output of the script</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">A number of json files are saved in the specified output directory: One containing the counts for each patient and the total, and one for each set of variants. The variant jsons include the basic information for each variant (chrom, pos, ref, alt).</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">JSON files</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="validation.UniqueVariants.generate_v_dict">
+<code class="descclassname">UniqueVariants.</code><code class="descname">generate_v_dict</code><span class="sig-paren">(</span><em>variants</em><span class="sig-paren">)</span><a class="headerlink" href="#validation.UniqueVariants.generate_v_dict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate a Dictionary of variants from a text file.</p>
+<p>Text files from the pipeline can be in one of two formats. The method determines the format from the header and
+populates the dictionary accordingly. The dictionary keys are a string of chr:pos:ref and the value is a list of
+all the alternate alleles in the file.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>variants</strong> (<em>List</em>) – List of lines from the variant file</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Dictionary of positions with the alternate alleles seen in the file</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">Dictionary</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 </div>
 </div>
 
@@ -134,7 +578,7 @@ False calls are annotated with the coverage at that position to determine whethe
         <div class="sphinxsidebarwrapper">
   <h3><a href="index.html">Table Of Contents</a></h3>
   <ul>
-<li><a class="reference internal" href="#">Appendix 1 - SDGS Validation</a><ul>
+<li><a class="reference internal" href="#">SDGS Validation Scripts</a><ul>
 <li><a class="reference internal" href="#comparison-with-the-genome-in-a-bottle-reference-sample">Comparison with the Genome in a Bottle Reference Sample</a><ul>
 <li><a class="reference internal" href="#generate-bed-intersects">Generate BED Intersects</a><ul>
 <li><a class="reference internal" href="#generate-whole-bed">Generate Whole BED</a></li>
@@ -176,26 +620,23 @@ False calls are annotated with the coverage at that position to determine whethe
 </ul>
 
   <h4>Previous topic</h4>
-  <p class="topless"><a href="index.html"
-                        title="previous chapter">Welcome to SDGS Validation&#8217;s documentation!</a></p>
+  <p class="topless"><a href="usage.html"
+                        title="previous chapter">SDGS Validation Usage</a></p>
   <div role="note" aria-label="source link">
     <h3>This Page</h3>
     <ul class="this-page-menu">
-      <li><a href="_sources/code.txt"
+      <li><a href="_sources/code.rst.txt"
             rel="nofollow">Show Source</a></li>
     </ul>
    </div>
 <div id="searchbox" style="display: none" role="search">
   <h3>Quick search</h3>
     <form class="search" action="search.html" method="get">
-      <input type="text" name="q" />
-      <input type="submit" value="Go" />
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
       <input type="hidden" name="check_keywords" value="yes" />
       <input type="hidden" name="area" value="default" />
     </form>
-    <p class="searchtip" style="font-size: 90%">
-    Enter search terms or a module, class or function name.
-    </p>
 </div>
 <script type="text/javascript">$('#searchbox').show(0);</script>
         </div>
@@ -209,14 +650,14 @@ False calls are annotated with the coverage at that position to determine whethe
           <a href="genindex.html" title="General Index"
              >index</a></li>
         <li class="right" >
-          <a href="index.html" title="Welcome to SDGS Validation’s documentation!"
+          <a href="usage.html" title="SDGS Validation Usage"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="index.html">SDGS Validation 1.0.0 documentation</a> &raquo;</li> 
+        <li class="nav-item nav-item-0"><a href="index.html">SDGS Validation 1.0.0 documentation</a> &#187;</li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
-        &copy; Copyright 2016, Natalie Groves.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.3.5.
+        &#169; Copyright 2016, Natalie Groves.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.3.
     </div>
   </body>
 </html>

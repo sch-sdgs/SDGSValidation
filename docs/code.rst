@@ -1,5 +1,5 @@
-Appendix 1 - SDGS Validation
-*******************************
+SDGS Validation Scripts
+***********************
 
 Comparison with the Genome in a Bottle Reference Sample
 =======================================================

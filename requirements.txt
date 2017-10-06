@@ -1,0 +1,5 @@
+pybedtools
+pysam
+json2html
+matplotlib
+numpy

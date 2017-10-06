@@ -649,7 +649,7 @@ def bcftools_isec(sample, decomposed_zipped, bed_dict, bam, reference_vcf, refer
 
         if os.path.getsize(f) > 0:
 
-            command = 'bcftools isec -R ' + f + ' -p ' + folder + \
+            command = 'bcftools isec -f .,PASS -R ' + f + ' -p ' + folder + \
                       ' ' + reference_vcf +' ' + decomposed_zipped
             try:
                 subprocess.check_call(command, shell=True)

@@ -67,6 +67,24 @@ The identifier used in the reference VCF. This is similar to the *-p* argument b
 for this argument is "INTEGRATION" which is the identifier used in the GIAB sample truth set.* Therefore, if this
 reference sample has been used, the argument can be omitted.
 
+**-truth_bed**
+
+The full path to the truth BED file for the reference genome. *The default for this argument is
+"/results/Analysis/HiSeq_validation/giab/giab-NA12878/truth_regions.bed".*
+
+**-abv**
+
+The path to the BED abbreviations file used in the pipeline. This file is used to get the name to be used in the output
+JSON to define each of the BED files analysed. *The default for this argument is
+"/results/Analysis/MiSeq/MasterBED/abbreviated_bed_names.txt".* Therefore, if the script is running on bioinfo then this
+argument can be omitted.
+
+**-ref**
+
+The path to the reference genome on the server. This is used by vt when preparing the VCF file (*vt decompose*).
+*The default for this argument is "/results/Pipeline/program/GATK_resource_bundle/ucsc.hg19.nohap.masked.fasta".*
+Therefore, if the program is run from bioinfo, this argument can be omitted.
+
 Execution
 ---------
 
@@ -77,7 +95,8 @@ To run the code, you will also need the following libraries:
 * pysam
 * json2html
 
-You will also need v2.17.0 of BEDtools and v? sambamba, bcftools and vt. The path to the bin directory should be in the PATH variable:
+You will also need v2.17.0 of BEDtools and v0.6.3 of sambamba, v1.3.1 of bcftools and vt. The path to the bin directory
+for each of these should be in the PATH variable:
 
 .. code-block:: bash
 

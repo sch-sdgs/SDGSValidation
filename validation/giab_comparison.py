@@ -143,7 +143,7 @@ def generate_bed_intersects(bed_prefix, directory, truth_bed, abv_names):
                 int(bed_length)
             except ValueError:
                 bed_length = 0
-            bed_dict[one_based] = {'abv':abv.strip(), 'length':bed_length}
+            bed_dict[one_based] = {'abv':abv.strip(), 'length':bed_length, 'original':f}
         except subprocess.CalledProcessError as e:
             print('Error executing command: ' + str(e.returncode))
             exit(1)
@@ -543,7 +543,7 @@ def check_genotype(folder, sample, ref_sample, coverage_file):
 
     return matching, variants
 
-def remainder_size(bed_file, original_path):
+def remainder_size(bed_file, original_bed):
     """
     Calculate the number of bases in the small panel not included in the truth regions.
 
@@ -553,12 +553,13 @@ def remainder_size(bed_file, original_path):
 
     :param bed_file: File path to the specific panel bed file
     :type bed_file: String
+    :param original_bed: Path to the original BED file that was given as an argument
+    :type original_bed: String
     :return: Total length of regions in remainder BED file
     :rtype: Int
     """
     print('Calculating remainder')
     print(bed_file)
-    original_bed = original_path + os.path.basename(bed_file.replace('_truth_regions_1based', ''))
     print(original_bed)
     truth_region_bed = bed_file.replace('_1based', '')
     print(truth_region_bed)
@@ -587,7 +588,7 @@ def remainder_size(bed_file, original_path):
 
     return total_length
 
-def bcftools_isec(sample, decomposed_zipped, bed_dict, bam, reference_vcf, reference_sample, whole_bed, out_dir, original_path):
+def bcftools_isec(sample, decomposed_zipped, bed_dict, bam, reference_vcf, reference_sample, whole_bed, out_dir):
     """
     Intersect the two VCFs and limit to the truth regions and panel BED file.
 
@@ -698,7 +699,7 @@ def bcftools_isec(sample, decomposed_zipped, bed_dict, bam, reference_vcf, refer
             mcc = (true_positives * true_negatives - false_pos * false_negs) / \
                   sqrt(denominator)
 
-            remainder_length = remainder_size(f, original_path)
+            remainder_length = remainder_size(f, bed_dict[f]['original'])
             percent_covered = float(total_bases) / (total_bases + remainder_length) * 100
 
             out = {'false_negative': false_negs_ann, 'false_positive': false_pos_ann,
@@ -715,7 +716,7 @@ def bcftools_isec(sample, decomposed_zipped, bed_dict, bam, reference_vcf, refer
             total_bases = int(bed_dict[f]['length'])
             print(total_bases)
 
-            original_bed = original_path + os.path.basename(f).replace('_truth_regions_1based', '')
+            original_bed = bed_dict[f]['original']
             print(original_bed)
 
             f = open(original_bed, 'r')
@@ -806,22 +807,20 @@ def giab_comp(out=None,sample=None,bed=None,bam=None,v=None,rv=None,rs=None, tru
     if not abv:
         abv = args.abv
 
-    command = 'export PATH=${PATH}:/results/Pipeline/program/bedtools-2.17.0/bin'
-    print(command)
-    try:
-        subprocess.check_call(command, shell=True)
-    except subprocess.CalledProcessError as e:
-        print(command)
-        print('Error executing command: ' + str(e.returncode))
-        exit(1)
-
-    original_bed_dir = os.path.basename(bed_prefix)
+    # command = 'export PATH=${PATH}:/results/Pipeline/program/bedtools-2.17.0/bin'
+    # print(command)
+    # try:
+    #     subprocess.check_call(command, shell=True)
+    # except subprocess.CalledProcessError as e:
+    #     print(command)
+    #     print('Error executing command: ' + str(e.returncode))
+    #     exit(1)
 
     bed_dict, whole_bed = generate_bed_intersects(bed_prefix, directory, truth_bed, abv)
 
     decomposed_zipped = prepare_vcf(vcf, ref)
 
-    results = bcftools_isec(sample, decomposed_zipped, bed_dict, bam, reference_vcf, reference_sample, whole_bed, directory, original_bed_dir)
+    results = bcftools_isec(sample, decomposed_zipped, bed_dict, bam, reference_vcf, reference_sample, whole_bed, directory)
 
     f = open(directory+'/giab_summary.txt', 'w')
     j = json.dumps(results, indent=4)

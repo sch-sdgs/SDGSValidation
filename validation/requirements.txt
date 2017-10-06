@@ -1,0 +1,8 @@
+argparse
+subprocess
+bybedtools
+pysam
+json
+json2html
+matplotlib
+numpy

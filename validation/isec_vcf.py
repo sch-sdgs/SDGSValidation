@@ -6,7 +6,7 @@ import json
 from pybedtools import BedTool
 from math import sqrt
 
-def isec_vcf(out=None,v1=None,s1=None,v1_prep=None,v2=None,s2=None,bed=None,bam=None):
+def isec_vcf(out=None,v1=None,s1=None,v1_prep=None,v2=None,s2=None,bed=None,bam=None,ref=None):
     parser = argparse.ArgumentParser()
     parser.add_argument('-o', help='Location of output')
     parser.add_argument('-v1', help='VCF 1')
@@ -16,6 +16,7 @@ def isec_vcf(out=None,v1=None,s1=None,v1_prep=None,v2=None,s2=None,bed=None,bam=
     parser.add_argument('-s2', help='Sample name (as appears in vcf 2), if omitted it will be the same as s1', default=None)
     parser.add_argument('-b', help='BED file to filter to')
     parser.add_argument('-bam', help='BAM file for vcf 2 sample to generate coverage stats from')
+    parser.add_argument('-ref', help="Path to the Reference Genome used", default='/results/Pipeline/program/GATK_resource_bundle/ucsc.hg19.nohap.masked.fasta')
 
     args = parser.parse_args()
 
@@ -38,6 +39,9 @@ def isec_vcf(out=None,v1=None,s1=None,v1_prep=None,v2=None,s2=None,bed=None,bam=
 
     if not out:
         out = args.o
+
+    if not ref:
+        ref = args.ref
 
     if out.endswith('/'):
         out_dir = os.path.dirname(out)
@@ -69,14 +73,14 @@ def isec_vcf(out=None,v1=None,s1=None,v1_prep=None,v2=None,s2=None,bed=None,bam=
 
     #prepare vcfs
     if v1_prep != "False":
-        v1_decomposed = prepare_vcf(v1)
+        v1_decomposed = prepare_vcf(v1, ref)
     else:
         print('no prep')
         v1_decomposed = v1
     if os.path.exists(v2.replace('.vcf', '.decomposed.normalised.vcf.gz')):
         v2_decomposed = v2.replace('.vcf', '.decomposed.normalised.vcf.gz')
     else:
-        v2_decomposed = prepare_vcf(v2)
+        v2_decomposed = prepare_vcf(v2, ref)
 
     #isec
     command = '/results/Pipeline/program/bcftools-1.3.1/bcftools isec -R ' + \

@@ -37,7 +37,8 @@ header.
 
 The prefix associated with any BED files that are to be used, for example, NGD\_. This is used to find all BED files
 that should be used in the evaluation of the sequencing results. This argument should also contain the path to the BED
-files.
+files. If you are providing the whole BED file path, do not include '.bed' in the argument as this is added within the
+script.
 
 If you wanted to include all the current NGD BED files used in the pipeline this argument would be:
 

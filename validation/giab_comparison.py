@@ -19,7 +19,7 @@ def generate_whole_bed(truth_regions, bedtool_list, bed_prefix):
     whole_region = truth_regions.intersect(bedtool_list)
     whole_region_sorted = whole_region.sort()
     whole_region_merged = whole_region_sorted.merge()
-    whole_bed = '/results/Analysis/projects/NBS/' + bed_prefix + '.whole.bed'
+    whole_bed = '/results/Analysis/Ion_Torrent/BED_files/' + bed_prefix + '.whole.bed'
     whole_region_merged.moveto(whole_bed)
     return whole_bed
 
@@ -51,7 +51,7 @@ def generate_remainder(whole_bed, bed_prefix, bed_list):
     whole_merged.saveas()
 
     remainder = whole_merged.subtract(whole_truth)
-    remainder.moveto('/results/Analysis/projects/NBS/' + bed_prefix + '.remainder.bed')
+    remainder.moveto('/results/Analysis/Ion_Torrent/BED_files/' + bed_prefix + '.remainder.bed')
     missing_regions = whole_merged.subtract(whole_truth, A=True)
     return missing_regions
 
@@ -64,7 +64,7 @@ def generate_bed_intersects(bed_prefix, directory):
     """
     print 'Getting BED files.'
     #path = '/results/Analysis/projects/IEM/' +  bed_prefix + "*"
-    path = '/results/Analysis/projects/NBS/' + bed_prefix + "*"
+    path = '/results/Analysis/Ion_Torrent/BED_files/' + bed_prefix + ".bed"
     bed_files = glob.glob(path)
 
     if len(bed_files) == 0:
@@ -78,9 +78,9 @@ def generate_bed_intersects(bed_prefix, directory):
     print 'Generating truth regions.'
     for f in bed_files:
         name = os.path.basename(f)
-        no_header = '/results/Analysis/projects/NBS/' + name.replace('.bed', '_noheader.bed')
-        one_based = '/results/Analysis/projects/NBS/' + name.replace('.bed', '_truth_regions_1based.bed')
-        truth_regions_panel = '/results/Analysis/projects/NBS/' + name.replace('.bed', '_truth_regions.bed')
+        no_header = '/results/Analysis/Ion_Torrent/BED_files/' + name.replace('.bed', '_noheader.bed')
+        one_based = '/results/Analysis/Ion_Torrent/BED_files/' + name.replace('.bed', '_truth_regions_1based.bed')
+        truth_regions_panel = '/results/Analysis/Ion_Torrent/BED_files/' + name.replace('.bed', '_truth_regions.bed')
 
         #Create BED file without header for intersect
         command = "grep -i -v start " + f + " > " + no_header
@@ -106,10 +106,10 @@ def generate_bed_intersects(bed_prefix, directory):
             exit(1)
 
         #find the bed abbreviation from the file on the server to name the result files
-        command_grep = "grep " + name + " /results/Analysis/MiSeq/MasterBED/abbreviated_bed_names.txt | cut -f2"
+        #command_grep = "grep " + name + " /results/Analysis/MiSeq/MasterBED/abbreviated_bed_names.txt | cut -f2"
         command_length = "awk '{SUM += $3-$2} END {print SUM}' " + truth_regions_panel
         try:
-            abv = subprocess.check_output(command_grep, shell=True)
+            abv = 'IEM'
             bed_length = subprocess.check_output(command_length, shell=True)
             try:
                 int(bed_length)
@@ -128,7 +128,7 @@ def generate_bed_intersects(bed_prefix, directory):
     print 'BED files produced correctly.'
     return bed_dict
 
-def prepare_vcf(directory, file_prefix):
+def prepare_vcf(directory, file_prefix, vcf):
     """
     vcf must be decomposed, zipped and indexed before it can be used with bcftools
     :param directory: The directory containing the results of the NGS pipeline
@@ -136,12 +136,12 @@ def prepare_vcf(directory, file_prefix):
     :return: filepath to the decomposed and zipped vcf
     """
     print 'Preparing vcf.'
-    decomposed = directory + "/" + file_prefix + '_Variants.decomposed.vcf'
-    normalized = directory + "/" + file_prefix + '_Variants.normalized.vcf'
+    decomposed = directory + "/" + file_prefix + '_decomposed.vcf'
+    normalized = directory + "/" + file_prefix + '_normalized.vcf'
     decomposed_zipped = normalized + '.gz'
 
     try:
-        command = '/results/Pipeline/program/vt/vt decompose ' +  directory + "/" + file_prefix + '_Variants.vcf -o ' + decomposed
+        command = '/results/Pipeline/program/vt/vt decompose -o ' + decomposed + ' ' + vcf
         subprocess.check_call(command, shell=True)
     except subprocess.CalledProcessError as e:
         print 'Error executing command:' + str(e.returncode)
@@ -171,7 +171,7 @@ def prepare_vcf(directory, file_prefix):
     print 'vcf decomposed and zipped successfully.'
     return decomposed_zipped
 
-def get_coverage(bed_prefix, directory, file_prefix):
+def get_coverage(bed_prefix, directory, file_prefix, bam):
     """
     Coverage at all positions is calculated. This is then used for coverage analysis and to determine read depth at any
     false negative sites
@@ -182,7 +182,7 @@ def get_coverage(bed_prefix, directory, file_prefix):
     :return out: filename for coverage stats
     """
     print('Generating coverage stats.')
-    whole_bed = '/results/Analysis/MiSeq/MasterBED/GIAB/' + bed_prefix + '.whole.bed'
+    whole_bed = '/results/Analysis/Ion_Torrent/BED_files/' + bed_prefix + '.whole.bed'
     out = directory + '/giab_results/whole_bed_coverage.txt'
     command = '/results/Pipeline/program/sambamba/build/sambamba depth base --min-coverage=0 -q29 -m -L ' + whole_bed + \
               ' ' + bam + ' > ' + out + '.tmp'
@@ -213,8 +213,8 @@ def get_coverage(bed_prefix, directory, file_prefix):
     missing_file = directory + '/giab_results/regions_missing'
     missing_regions.moveto(missing_file)
     print('Generating file')
-    sample_split = file_prefix.split('-')
-    sample = sample_split[1] + '-' + sample_split[2]
+    #sample_split = file_prefix.split('-')
+    #sample = sample_split[1] + '-' + sample_split[2]
     print 'Generating file'
     if re.match('-', file_prefix):
         sample_split = file_prefix.split('-')
@@ -478,7 +478,7 @@ def remainder_size(bed_file):
 
     return total_length
 
-def bcftools_isec(file_prefix, decomposed_zipped, bed_prefix, bed_dict):
+def bcftools_isec(file_prefix, decomposed_zipped, bed_prefix, bed_dict, bam):
     """
     Intersect the two vcfs and limit to the truth regions and panel BED file.
     The method counts the number of false positives and false negatives and checks the genotype of all of the matching
@@ -507,15 +507,15 @@ def bcftools_isec(file_prefix, decomposed_zipped, bed_prefix, bed_dict):
         if e.errno != 17:
             exit(1)
 
-    path = '/results/Analysis/projects/NBS/' + bed_prefix + '*truth_regions_1based.bed'
+    path = '/results/Analysis/Ion_Torrent/BED_files/' + bed_prefix + '*truth_regions_1based.bed'
     bed_files = glob.glob(path)
 
-    coverage_file = get_coverage(bed_prefix, directory, file_prefix)
+    coverage_file = get_coverage(bed_prefix, directory, file_prefix, bam)
 
     all_results = {}
 
     for f in bed_files:
-        abv = bed_dict[f]
+        abv = 'IEM'
         print abv
         folder = results + '/' + abv
         try:
@@ -647,9 +647,9 @@ def main():
 
     bed_dict = generate_bed_intersects(bed_prefix, directory)
 
-    decomposed_zipped = prepare_vcf(directory, file_prefix)
+    decomposed_zipped = prepare_vcf(directory, file_prefix, vcf)
 
-    results = bcftools_isec(file_prefix, decomposed_zipped, bed_prefix, bed_dict)
+    results = bcftools_isec(file_prefix, decomposed_zipped, bed_prefix, bed_dict, bam)
 
     f = open(directory+'/giab_summary.txt', 'w')
     j = json.dumps(results, indent=4)

@@ -18,7 +18,7 @@ def generate_whole_bed(truth_regions, bedtool_list, bed_prefix):
     whole_region = truth_regions.intersect(bedtool_list)
     whole_region_sorted = whole_region.sort()
     whole_region_merged = whole_region_sorted.merge()
-    whole_bed = '/results/Analysis/projects/NBS/' + bed_prefix + '_whole.bed'
+    whole_bed = '/results/Analysis/Ion_Torrent/BED_files/' + bed_prefix + '_whole.bed'
     whole_region_merged.moveto(whole_bed)
     return whole_bed
 
@@ -50,7 +50,7 @@ def generate_remainder(whole_bed, bed_prefix, bed_list):
     whole_merged.saveas()
 
     remainder = whole_merged.subtract(whole_truth)
-    remainder.moveto('/results/Analysis/projects/NBS/' + bed_prefix + '.remainder.bed')
+    remainder.moveto('/results/Analysis/Ion_Torrent/BED_files/' + bed_prefix + '.remainder.bed')
     missing_regions = whole_merged.subtract(whole_truth, A=True)
     return missing_regions
 
@@ -62,7 +62,7 @@ def generate_bed_intersects(bed_prefix, directory):
     :return: dictionary containing the abbreviations for each of the one-based bed files
     """
     print 'Getting BED files.'
-    path = '/results/Analysis/projects/NBS/' + bed_prefix + "*"
+    path = '/results/Analysis/Ion_Torrent/BED_files/' + bed_prefix + ".bed"
     bed_files = glob.glob(path)
 
     if len(bed_files) == 0:
@@ -76,9 +76,9 @@ def generate_bed_intersects(bed_prefix, directory):
     print 'Generating truth regions.'
     for f in bed_files:
         #name = os.path.basename(f)
-        no_header = '/results/Analysis/projects/NBS/' + bed_prefix + '_noheader.bed'
-        one_based = '/results/Analysis/projects/NBS/' + bed_prefix + '_truth_regions_1based.bed'
-        truth_regions_panel = '/results/Analysis/projects/NBS/' + bed_prefix + '_truth_regions.bed'
+        no_header = '/results/Analysis/Ion_Torrent/BED_files/' + bed_prefix + '_noheader.bed'
+        one_based = '/results/Analysis/Ion_Torrent/BED_files/' + bed_prefix + '_truth_regions_1based.bed'
+        truth_regions_panel = '/results/Analysis/Ion_Torrent/BED_files/' + bed_prefix + '_truth_regions.bed'
 
         #Create BED file without header for intersect
         command = "grep -i -v start " + f + " > " + no_header
@@ -128,12 +128,12 @@ def prepare_vcf(directory, file_prefix):
     :return: filepath to the decomposed and zipped vcf
     """
     print 'Preparing vcf.'
-    decomposed = directory + "/" + file_prefix + '_Variants.decomposed.vcf'
-    normalized = directory + "/" + file_prefix + '_Variants.normalized.vcf'
+    decomposed = directory + "/" + file_prefix + '.decomposed.vcf'
+    normalized = directory + "/" + file_prefix + '.normalized.vcf'
     decomposed_zipped = normalized + '.gz'
 
     try:
-        command = '/results/Pipeline/program/vt/vt decompose ' +  directory + "/" + file_prefix + '_Variants.vcf -o ' + decomposed
+        command = '/results/Pipeline/program/vt/vt decompose ' +  directory + "/" + file_prefix + '.vcf.gz -o ' + decomposed
         subprocess.check_call(command, shell=True)
     except subprocess.CalledProcessError as e:
         print 'Error executing command:' + str(e.returncode)
@@ -173,7 +173,7 @@ def get_coverage(bed_prefix, directory, file_prefix):
     :return out: filename for coverage stats
     """
     print 'Generating coverage stats.'
-    whole_bed = '/results/Analysis/projects/NBS/' + bed_prefix + '_whole.bed'
+    whole_bed = '/results/Analysis/Ion_Torrent/BED_files/' + bed_prefix + '_whole.bed'
     bam = directory + '/' + file_prefix + '.bam'
     out = directory + '/huref_results/whole_bed_coverage.txt'
     command = '/results/Pipeline/program/sambamba/build/sambamba depth base --min-coverage=0 -q29 -m -L ' + whole_bed + \
@@ -433,7 +433,7 @@ def remainder_size(bed_prefix):
     :param bed_prefix: prefix used for all bed files in the panel (used to create remainder file name
     :return:total length of regions in bed file
     """
-    remainder  = '/results/Analysis/projects/NBS/' + bed_prefix + '.remainder.bed'
+    remainder  = '/results/Analysis/Ion_Torrent/BED_files/' + bed_prefix + '.remainder.bed'
     f = open(remainder, 'r')
     regions = [line.strip('\n') for line in f.readlines()]
 
@@ -475,7 +475,7 @@ def bcftools_isec(file_prefix, decomposed_zipped, bed_prefix, bed_dict):
         if e.errno != 17:
             exit(1)
 
-    path = '/results/Analysis/projects/NBS/' + bed_prefix + '*truth_regions_1based.bed'
+    path = '/results/Analysis/Ion_Torrent/BED_files/' + bed_prefix + '*truth_regions_1based.bed'
     bed_files = glob.glob(path)
 
     coverage_file = get_coverage(bed_prefix, directory, file_prefix)

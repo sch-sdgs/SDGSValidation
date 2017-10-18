@@ -7,6 +7,8 @@ import subprocess
 import collections
 import math
 from pybedtools import BedTool
+import os
+import glob
 
 def generate_gene_dict(beds, output_folder):
     """
@@ -26,7 +28,7 @@ def generate_gene_dict(beds, output_folder):
     all_lines = []
 
     for bed in beds:
-        f = open('/results/Analysis/projects/NBS/' + bed, 'r')
+        f = open(bed, 'r')
         lines = [line.strip('\n') for line in f.readlines()]
         f.close()
 
@@ -37,7 +39,7 @@ def generate_gene_dict(beds, output_folder):
                 all_lines.append(line)
 
     raw_regions = '\n'.join(all_lines)
-    f = open ('/results/Analysis/projects/NBS/raw_regions.bed', 'w')
+    f = open ('/results/Analysis/Ion_Torrent/NBS/raw_regions.bed', 'w')
     f.write(raw_regions)
     f.close()
 
@@ -89,23 +91,23 @@ def generate_bed_dict(beds):
     bed_dict = {}
     for bed in beds:
         # find the bed abbreviation from the file on the server to name the result files
-        #command = "grep " + bed + " /results/Analysis/MiSeq/MasterBED/abbreviated_bed_names.txt | cut -f2"
-        try:
-            # abv = subprocess.check_output(command, shell=True).replace('\n', '')
-            # print(abv)
-            # if not abv:
-            #     print('No abv found for ' + bed)
-            #     abv = bed
-            abv = 'NBS1'
+        # command = "grep " + bed + " /results/Analysis/MiSeq/MasterBED/abbreviated_bed_names.txt | cut -f2"
+        # try:
+        #     abv = subprocess.check_output(command, shell=True).replace('\n', '')
+        #     print(abv)
+        #     if not abv:
+        #         print('No abv found for ' + bed)
+        #         abv = bed
+            abv = 'NBS2'
             bed_dict[abv] = {'name':bed, 'regions':{}}
 
-            f = open('/results/Analysis/projects/NBS/' + bed, 'r')
+            f = open(bed, 'r')
             lines = [line.strip('\n') for line in f.readlines()]
             f.close()
 
             for line in lines:
-                #if line == lines[0]:
-                    #continue
+                if line == lines[0]:
+                    continue
                 fields = line.split('\t')
                 chrom = fields[0]
                 start = int(fields[1])
@@ -119,9 +121,9 @@ def generate_bed_dict(beds):
                     bed_dict[abv]['regions'][chrom][name] = {'start':start, 'end': end, 'coverage': {}}
                 else:
                     print('region duplicate ' + line + ':' + bed)
-        except subprocess.CalledProcessError as e:
-            print('Error executing command: ' + str(e.returncode))
-            exit(1)
+        # except subprocess.CalledProcessError as e:
+        #     print('Error executing command: ' + str(e.returncode))
+        #     exit(1)
 
     return bed_dict
 
@@ -143,14 +145,15 @@ def get_coverage(coverage_input, bed_dict):
 
         for line in lines:
             #ignore header line
-            #if line == lines[0] and bed != 'genes':
-                #continue
+            if line == lines[0]:
+                continue
             #print line
             fields = line.split('\t')
             chrom = fields[0]
             start = int(fields[1])
             #end position (fields[2]) not relevant
             cov = int(fields[3])
+            # cov = int(fields[2])
             try:
                 if chrom not in coverage:
                     coverage[chrom] = {}
@@ -183,11 +186,11 @@ def get_coverage(coverage_input, bed_dict):
                         cov = coverage[chrom][i]['cov']
                         coverage[chrom][i]['name'] = name
                         avg = sum(cov) / float(len(cov))
-                        if avg < 18:
+                        if avg < 30:
                             count_less_18 += 1
-                        elif 18<= avg < 30:
+                        elif 30<= avg < 50:
                             count_18_30 += 1
-                        elif 30 <= avg < 100:
+                        elif 50 <= avg < 100:
                             count_30_100 += 1
                         else:
                             count_more_100 += 1
@@ -291,12 +294,12 @@ def plot_region_coverage(panel_name, panel_dict, output_folder):
                 c = sub_30_100[plot_no]
                 d = sub_more_100[plot_no]
 
-            ax.bar(spacing, a, width, color='r', label='Less than 18X')
-            ax.bar(spacing, b, width, bottom=a, color='y', label='Between 18X and 30X')
+            ax.bar(spacing, a, width, color='r', label='Less than 30X')
+            ax.bar(spacing, b, width, bottom=a, color='y', label='Between 30X and 50X')
             ax.bar(spacing, c, width, bottom=[i + j for i, j in zip(a, b)],
-                   color='g', label='Between 30X and 100X')
+                   color='g', label='Between 50X and 100X')
             ax.bar(spacing, d, width,
-                   bottom=[i + j + k for i, j, k in zip(a, b, c)], color='m',
+                   bottom=[i + j + k for i, j, k in zip(a, b, c)], color='0.6',
                    label='Over 100X')
 
             ax.set_xticks(tick_pos)
@@ -314,12 +317,12 @@ def plot_region_coverage(panel_name, panel_dict, output_folder):
         tick_pos = [i + (width / 2.) for i in spacing]
         f, ax1 = plt.subplots(1, figsize=(0.2 * len(names) + 5, 10))
 
-        ax1.bar(spacing, less_18, width, color='r', label='Less than 18X')
-        ax1.bar(spacing, between_18_30, width, bottom=less_18, color='y', label='Between 18X and 30X')
+        ax1.bar(spacing, less_18, width, color='r', label='Less than 30X')
+        ax1.bar(spacing, between_18_30, width, bottom=less_18, color='y', label='Between 30X and 50X')
         ax1.bar(spacing, between_30_100, width, bottom=[i + j for i, j in zip(less_18, between_18_30)],
-                color='g', label='Between 30X and 100X')
+                color='g', label='Between 50X and 100X')
         ax1.bar(spacing, more_100, width,
-                bottom=[i + j + k for i, j, k in zip(less_18, between_18_30, between_30_100)], color='m',
+                bottom=[i + j + k for i, j, k in zip(less_18, between_18_30, between_30_100)], color='0.6',
                 label='Over 100X')
         print(tick_pos)
         ax1.set_xlim([min(tick_pos) - width, max(tick_pos) + width])
@@ -352,7 +355,7 @@ def generate_gene_plots(gene_dict, coverage, output_folder):
     for chrom in chroms:
         try:
             for gene in gene_dict[chrom].keys():
-                #print gene
+                print gene
                 if output_folder.endswith('/'):
                     output_file = output_folder + gene + '_plot.png'
                 else:
@@ -365,8 +368,8 @@ def generate_gene_plots(gene_dict, coverage, output_folder):
 
                 start = gene_dict[chrom][gene]['start']
                 end = gene_dict[chrom][gene]['end']
-                # print start
-                # print end
+                #print start
+                #print end
                 plot_list = {}
                 plot_number = 0
                 new_plot = False
@@ -393,10 +396,13 @@ def generate_gene_plots(gene_dict, coverage, output_folder):
                                                       'min': region_min, 'avg': region_avg}
                             plot_number += 1
                             new_plot = False
-                        #print coverage[chrom][i]['name']
+                        print coverage[chrom][i]['name']
                         region_name = coverage[chrom][i]['name']
                         #print region_name
-                        exon = region_name.split('_')[1]
+                        if '_' in region_name:
+                            exon = region_name.split('_')[1]
+                        else:
+                            exon = region_name
                         intron_number += 1
                         cov_mean = numpy.mean(cov)
                         cov_max = max(cov)
@@ -437,8 +443,8 @@ def generate_gene_plots(gene_dict, coverage, output_folder):
                                   transform=subplots.transAxes)
                 else:
                     reverse = False
-                    if float(plot_list[0]['title'].replace('Ex', '')) > float(plot_list[1]['title'].replace('Ex', '')):
-                        reverse = True
+                    # if float(plot_list[0]['title'].replace('ex', '')) > float(plot_list[1]['title'].replace('ex', '')):
+                    #     reverse = True
                     i = 0
                     for ax in subplots.flatten():
                         if reverse:
@@ -471,13 +477,26 @@ def main():
     :return:
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument('-d', help='Comma separated list of coverage files (full path)', required=True)
+    parser.add_argument('-d', help='Worklist directory', required=True)
     parser.add_argument('-b', help='Comma separated list of BED files (file names only)', required=True)
     parser.add_argument('-o', help='Directory for graph output', required=True)
 
     args = parser.parse_args()
 
-    coverage_input = args.d.split(',')
+    #coverage_input = args.d.split(',')
+    directory = args.d
+    #coverage_input=[]
+    # samples = os.listdir(directory)
+    # for sample in samples:
+    #     if os.path.isdir(directory+'/'+sample+'/NBS2_AIM/') and 'ACday30' not in sample:
+    #         bed_file = glob.glob(directory+'/'+sample+'/NBS2_AIM/*_full_small_panel.bed')[0]
+    #         coverage_input.append(bed_file)
+    coverage_input = glob.glob(directory+'/*.bed')
+
+    # coverage_input = args.d.split(',')
+
+    print coverage_input
+
     beds = args.b.split(',')
     output_folder = args.o
 
